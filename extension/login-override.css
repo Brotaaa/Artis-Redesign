@@ -1,0 +1,429 @@
+/* ============================================================
+   Artis Login v3 — Futuristic Dark Glassmorphism
+   Font: Space Grotesk + DM Sans
+   Palette: Indigo #6366f1 / #818cf8 + Emerald #10b981
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap');
+
+/* ── Variables ────────────────────────────────────────────── */
+:root {
+  --l-bg:       #07071a;
+  --l-s1:       #0d0d28;
+  --l-s2:       #12122f;
+  --l-p:        #6366f1;
+  --l-p2:       #818cf8;
+  --l-p3:       #a5b4fc;
+  --l-green:    #10b981;
+  --l-text:     #f1f5f9;
+  --l-muted:    #94a3b8;
+  --l-border:   rgba(99,102,241,0.22);
+  --l-glass:    rgba(13,13,38,0.72);
+  --l-blur:     blur(24px) saturate(180%);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box !important; }
+
+html, body, body.login-page {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 100vh !important;
+  font-family: 'DM Sans', -apple-system, sans-serif !important;
+  background: var(--l-bg) !important;
+  color: var(--l-text) !important;
+  overflow-x: hidden !important;
+}
+
+/* ── Background → canvas prend le relais ─────────────────── */
+.login-background {
+  background-image: none !important;
+  background: transparent !important;
+  min-height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.login-background > .container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 100vh !important;
+  padding: 24px 16px !important;
+  max-width: 500px !important;
+  width: 100% !important;
+}
+
+/* ── Login wrapper ────────────────────────────────────────── */
+.login-wrapper {
+  width: 100% !important;
+  max-width: 440px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 28px !important;
+  animation: l-fade-up 0.7s cubic-bezier(0.22,1,0.36,1) both !important;
+}
+
+/* ── Logo ────────────────────────────────────────────────── */
+.login-img {
+  max-width: 130px !important;
+  height: auto !important;
+  filter: brightness(0) invert(1) !important;
+  opacity: 0.92 !important;
+  animation: l-logo-in 0.9s cubic-bezier(0.22,1,0.36,1) both !important;
+  animation-delay: 0.1s !important;
+}
+
+/* ── Alerte accès simultané (message d'erreur page SSO) ───── */
+body, .login-background, .login-wrapper,
+.login-background > .container > * {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Alerte / panel d'erreur SSO gris → dark glass */
+.alert,
+.alert-warning,
+.alert-danger,
+.alert-info,
+[class*="alert"],
+[class*="error-message"],
+[class*="message-box"],
+.panel,
+.panel-body,
+.panel-default,
+.well {
+  background: rgba(13,13,38,0.85) !important;
+  backdrop-filter: var(--l-blur) !important;
+  -webkit-backdrop-filter: var(--l-blur) !important;
+  border: 1px solid rgba(99,102,241,0.25) !important;
+  border-radius: 16px !important;
+  color: var(--l-text) !important;
+  padding: 20px 24px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45) !important;
+}
+
+.alert-warning { border-color: rgba(245,158,11,0.35) !important; }
+.alert-danger   { border-color: rgba(239,68,68,0.35)  !important; }
+.alert-info     { border-color: rgba(99,102,241,0.35)  !important; }
+
+/* Catch tout fond gris/blanc dans la page login */
+div, section, article, main, header, footer, p, span {
+  background-color: transparent !important;
+}
+
+/* ── Card principale ──────────────────────────────────────── */
+.login-wrapper .card,
+.card {
+  background: var(--l-glass) !important;
+  backdrop-filter: var(--l-blur) !important;
+  -webkit-backdrop-filter: var(--l-blur) !important;
+  border: 1px solid var(--l-border) !important;
+  border-radius: 24px !important;
+  box-shadow:
+    0 0 0 1px rgba(99,102,241,0.08),
+    0 24px 64px rgba(0,0,0,0.55),
+    0 0 80px rgba(99,102,241,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  animation: l-card-in 0.75s cubic-bezier(0.22,1,0.36,1) both !important;
+  animation-delay: 0.15s !important;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease !important;
+  position: relative !important;
+  color: var(--l-text) !important;
+}
+
+.card:hover {
+  border-color: rgba(99,102,241,0.35) !important;
+  box-shadow:
+    0 0 0 1px rgba(99,102,241,0.15),
+    0 32px 80px rgba(0,0,0,0.6),
+    0 0 100px rgba(99,102,241,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+/* Glow top edge */
+.card::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.6) 50%, transparent 100%) !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+/* ── Card header ──────────────────────────────────────────── */
+.card-header {
+  background: rgba(99,102,241,0.08) !important;
+  border-bottom: 1px solid rgba(99,102,241,0.14) !important;
+  padding: 22px 28px 18px !important;
+  text-align: center !important;
+}
+
+.card-header .card-title,
+.card-title {
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-size: 1.2rem !important;
+  font-weight: 600 !important;
+  color: var(--l-text) !important;
+  margin: 0 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* ── Card body ────────────────────────────────────────────── */
+.card-body {
+  background: transparent !important;
+  padding: 28px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  color: var(--l-text) !important;
+}
+
+/* ── Inputs ───────────────────────────────────────────────── */
+.form-control,
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(99,102,241,0.22) !important;
+  border-radius: 12px !important;
+  color: var(--l-text) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 0.9rem !important;
+  height: 50px !important;
+  padding: 0 44px 0 46px !important;
+  width: 100% !important;
+  transition: border-color 0.22s, background 0.22s, box-shadow 0.22s !important;
+  outline: none !important;
+}
+
+.form-control::placeholder { color: rgba(148,163,184,0.5) !important; }
+
+.form-control:focus {
+  background: rgba(99,102,241,0.08) !important;
+  border-color: var(--l-p) !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.18), 0 0 20px rgba(99,102,241,0.12) !important;
+  color: var(--l-text) !important;
+}
+
+.form-control-feedback {
+  color: var(--l-p2) !important;
+  opacity: 0.7 !important;
+}
+
+/* ── Bouton principal ─────────────────────────────────────── */
+.btn-info,
+.btn-primary,
+button[type="submit"],
+#loginForm .btn,
+.login-wrapper .btn {
+  position: relative !important;
+  width: 100% !important;
+  height: 52px !important;
+  background: linear-gradient(135deg, #5254cc 0%, #6366f1 40%, #818cf8 80%, #a5b4fc 100%) !important;
+  background-size: 250% 250% !important;
+  background-position: 0% 0% !important;
+  border: none !important;
+  border-radius: 13px !important;
+  color: #fff !important;
+  cursor: pointer !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em !important;
+  overflow: hidden !important;
+  transition:
+    background-position 0.5s ease,
+    box-shadow 0.25s ease,
+    transform 0.15s ease !important;
+  box-shadow:
+    0 4px 15px rgba(99,102,241,0.4),
+    0 0 0 1px rgba(99,102,241,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.15) !important;
+  animation: l-btn-in 0.7s cubic-bezier(0.22,1,0.36,1) both !important;
+  animation-delay: 0.35s !important;
+}
+
+/* Shimmer overlay */
+.btn-info::after,
+.btn-primary::after,
+#loginForm .btn::after {
+  content: '' !important;
+  position: absolute !important;
+  top: -50% !important; left: -75% !important;
+  width: 50% !important; height: 200% !important;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255,255,255,0.18) 50%,
+    transparent 60%
+  ) !important;
+  transform: skewX(-15deg) !important;
+  transition: left 0.6s ease !important;
+  pointer-events: none !important;
+}
+
+.btn-info:hover::after,
+#loginForm .btn:hover::after {
+  left: 125% !important;
+}
+
+.btn-info:hover,
+.btn-primary:hover,
+#loginForm .btn:hover {
+  background-position: 100% 100% !important;
+  box-shadow:
+    0 8px 30px rgba(99,102,241,0.6),
+    0 0 0 1px rgba(99,102,241,0.45),
+    0 0 50px rgba(99,102,241,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.2) !important;
+  transform: translateY(-2px) !important;
+}
+
+.btn-info:active,
+#loginForm .btn:active {
+  transform: translateY(0) scale(0.98) !important;
+  box-shadow: 0 2px 10px rgba(99,102,241,0.4) !important;
+  transition: transform 0.08s ease !important;
+}
+
+.btn-info:focus,
+#loginForm .btn:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.35), 0 8px 28px rgba(99,102,241,0.4) !important;
+}
+
+/* ── Boutons secondaires ──────────────────────────────────── */
+.btn-default,
+.btn-secondary,
+.btn-light {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(99,102,241,0.22) !important;
+  border-radius: 12px !important;
+  color: var(--l-muted) !important;
+  cursor: pointer !important;
+  font-family: 'DM Sans', sans-serif !important;
+  transition: all 0.22s ease !important;
+}
+
+.btn-default:hover, .btn-secondary:hover {
+  background: rgba(99,102,241,0.12) !important;
+  border-color: rgba(99,102,241,0.4) !important;
+  color: var(--l-p3) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── Footer card ──────────────────────────────────────────── */
+.card-footer {
+  background: rgba(0,0,0,0.15) !important;
+  border-top: 1px solid rgba(99,102,241,0.1) !important;
+  padding: 16px 28px !important;
+  text-align: center !important;
+}
+
+.card-footer a, #mdpOublieModalLoginLink {
+  color: var(--l-p3) !important;
+  font-size: 0.82rem !important;
+  text-decoration: none !important;
+  opacity: 0.75 !important;
+  transition: opacity 0.2s, color 0.2s !important;
+}
+
+.card-footer a:hover, #mdpOublieModalLoginLink:hover {
+  opacity: 1 !important;
+  color: #fff !important;
+}
+
+/* ── Labels ───────────────────────────────────────────────── */
+label, .control-label {
+  color: var(--l-muted) !important;
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Space Grotesk', sans-serif !important;
+  color: var(--l-text) !important;
+}
+
+/* ── Password toggle ──────────────────────────────────────── */
+.artis-pw-toggle {
+  position: absolute !important;
+  right: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: none !important;
+  border: none !important;
+  color: var(--l-muted) !important;
+  cursor: pointer !important;
+  padding: 4px !important;
+  z-index: 10 !important;
+  opacity: 0.6 !important;
+  transition: opacity 0.2s, color 0.2s !important;
+}
+
+.artis-pw-toggle:hover { opacity: 1 !important; color: var(--l-p3) !important; }
+.artis-has-toggle .form-control { padding-right: 46px !important; }
+
+/* ── Loading ──────────────────────────────────────────────── */
+.divChargement, #chargement, #chargement2,
+[class*="chargement"], [class*="loading"],
+[id*="loading"], [id*="chargement"] {
+  background: rgba(7,7,26,0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.chgtText {
+  color: var(--l-muted) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 0.875rem !important;
+  animation: l-pulse 2s ease-in-out infinite !important;
+}
+
+.box-rotate-box { border-color: var(--l-p) transparent var(--l-p) transparent !important; }
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+* { scrollbar-width: thin !important; scrollbar-color: rgba(99,102,241,0.3) transparent !important; }
+
+/* ══════════════════════════════════════════════════════════
+   KEYFRAMES
+   ══════════════════════════════════════════════════════════ */
+@keyframes l-fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes l-logo-in {
+  from { opacity: 0; transform: scale(0.85) translateY(-10px); }
+  to   { opacity: 0.92; transform: scale(1) translateY(0); }
+}
+@keyframes l-card-in {
+  from { opacity: 0; transform: scale(0.95) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes l-btn-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes l-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@media (max-width: 480px) {
+  .login-background > .container { padding: 16px !important; }
+  .card-body { padding: 20px !important; }
+}

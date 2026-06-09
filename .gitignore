@@ -1,0 +1,22 @@
+# Pages Artis sauvegardées localement (lourdes, privées)
+Artis.net - *.html
+Artis.net - *_files/
+*_files/
+
+# Build
+artis-extension.zip
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+
+# Tooling local (skills Claude, caches)
+.claude/
+**/__pycache__/
+*.pyc
+*.zip

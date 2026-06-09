@@ -1,0 +1,59 @@
+{
+  "manifest_version": 3,
+  "name": "Artis Login Enhancer",
+  "version": "1.8.0",
+  "description": "Modernise login + interface interne Artis.net — dark glassmorphism + animations",
+  "permissions": [],
+  "icons": {
+    "16": "justejohn.png",
+    "32": "justejohn.png",
+    "48": "justejohn.png",
+    "128": "justejohn.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "justejohn.png",
+      "32": "justejohn.png",
+      "48": "justejohn.png",
+      "128": "justejohn.png"
+    },
+    "default_title": "Artis Redesign"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["favicon.png", "justejohn.png"],
+      "matches": [
+        "*://artis.digithall.org/*",
+        "*://*.artis.fr/*",
+        "*://*.artis.net/*"
+      ]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://artis.digithall.org/*/composants/login/*",
+        "*://*.artis.fr/*/composants/login/*",
+        "*://*.artis.net/*/composants/login/*"
+      ],
+      "js": ["content.js"],
+      "css": ["login-override.css"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "*://artis.digithall.org/ArtisWebDigitInvest/*",
+        "*://*.artis.fr/*/ArtisWeb*/*",
+        "*://*.artis.net/*/ArtisWeb*/*"
+      ],
+      "exclude_matches": [
+        "*://artis.digithall.org/*/composants/login/*",
+        "*://*.artis.fr/*/composants/login/*",
+        "*://*.artis.net/*/composants/login/*"
+      ],
+      "js": ["app-content.js"],
+      "css": ["app-override.css"],
+      "run_at": "document_end"
+    }
+  ]
+}
