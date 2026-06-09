@@ -753,38 +753,63 @@ body > form footer {
 .aside,
 .aside-extended { position: relative !important; }
 
-/* Panneau fermé → glissé hors écran (état replié) */
-.aside:not(.aside-extended) .aside-secondary,
-.aside-secondary[style*="display: none"],
-.aside-secondary.collapsed {
-  transform: translateX(-12px) !important;
-  opacity: 0 !important;
+/* ════════════════════════════════════════════════════════════
+   PANEL FLYOUT AU SURVOL (hors page planning où il est docké)
+   Le menu de gauche apparaît quand la souris entre dans la zone
+   (sidebar icônes OU le panel lui-même), avec une animation lente
+   et organique. Plus besoin du bouton flèche (masqué plus bas).
+   On NEUTRALISE le pilotage par .aside-extended : c'est le :hover
+   qui commande, quel que soit l'état Artis.
+   ════════════════════════════════════════════════════════════ */
+
+/* État fermé par défaut : panel ENTIÈREMENT glissé à gauche (caché derrière
+   la sidebar grâce à son z-index plus élevé). Pur slide, pas de pop. */
+html:not(.artis-page-planning) .aside-secondary {
+  transform: translateX(-100%) !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+  transition: transform 0.5s cubic-bezier(0.22,1,0.36,1) !important;
 }
 
-/* Panneau ouvert → entrée slide + contenu en cascade */
-.aside.aside-extended .aside-secondary {
+/* Survol de la zone aside (icônes + panel) → le panel se déroule de gauche à droite */
+html:not(.artis-page-planning) .aside:hover .aside-secondary {
   transform: translateX(0) !important;
   opacity: 1 !important;
-  animation: artis-flyout-in 0.4s cubic-bezier(0.22,1,0.36,1) both !important;
+  pointer-events: auto !important;
+  transition: transform 0.5s cubic-bezier(0.22,1,0.36,1) !important;
 }
 
-@keyframes artis-flyout-in {
-  from { opacity: 0; transform: translateX(-16px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
+/* La sidebar icônes masque le panel quand il est glissé en dessous */
+.aside-primary { position: relative !important; z-index: 60 !important; }
 
-/* Contenu interne (search + menu) entre en décalé */
-.aside.aside-extended .aside-secondary .global-search-button-container {
-  animation: artis-flyout-fade 0.42s cubic-bezier(0.22,1,0.36,1) 0.06s both !important;
+/* Contenu interne (search + items) entre en cascade organique */
+html:not(.artis-page-planning) .aside:hover .aside-secondary .global-search-button-container {
+  animation: artis-flyout-fade 0.55s cubic-bezier(0.16,1,0.3,1) 0.10s both !important;
 }
-.aside.aside-extended .aside-secondary .tab-content,
-.aside.aside-extended .aside-secondary .menu {
-  animation: artis-flyout-fade 0.45s cubic-bezier(0.22,1,0.36,1) 0.12s both !important;
+html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item {
+  animation: artis-flyout-fade 0.55s cubic-bezier(0.16,1,0.3,1) both !important;
 }
+html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(1) { animation-delay: 0.14s !important; }
+html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(2) { animation-delay: 0.19s !important; }
+html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(3) { animation-delay: 0.24s !important; }
+html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(4) { animation-delay: 0.29s !important; }
+html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(5) { animation-delay: 0.34s !important; }
+html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(6) { animation-delay: 0.39s !important; }
+html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(n+7) { animation-delay: 0.44s !important; }
 
 @keyframes artis-flyout-fade {
-  from { opacity: 0; transform: translateX(-10px); }
+  from { opacity: 0; transform: translateX(-14px); }
   to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Bouton flèche de déroulement → retiré (le survol gère tout) */
+#kt_aside_toggle,
+.aside-toggle,
+.aside-secondary-toggle,
+.btn-aside-minimize,
+[data-kt-aside-minimize],
+[data-kt-toggle*="aside"] {
+  display: none !important;
 }
 
 .aside-workspace {
@@ -1831,9 +1856,9 @@ input[type="submit"],
 input[type="reset"],
 button[style],
 .btn[style] {
-  background: rgba(255,255,255,0.1) !important;
-  background-color: rgba(255,255,255,0.1) !important;
-  border: 1px solid rgba(99,102,241,0.28) !important;
+  background: rgba(255,255,255,0.13) !important;
+  background-color: rgba(255,255,255,0.13) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
   border-radius: 8px !important;
   color: var(--a-text) !important;
   cursor: pointer !important;
@@ -1944,9 +1969,13 @@ button:hover,
   border: none !important;
 }
 .page-action-button,
-.btn-breadcrumb {
-  background: rgba(255,255,255,0.07) !important;
-  border: 1px solid rgba(99,102,241,0.18) !important;
+.btn-breadcrumb,
+.page-action-button.text-dark,
+.btn-breadcrumb.text-dark,
+.page-action-button[style],
+.btn-breadcrumb[style] {
+  background: rgba(255,255,255,0.13) !important;   /* rectangle arrondi clair bien visible */
+  border: 1px solid rgba(255,255,255,0.14) !important;
   border-radius: 8px !important;
 }
 .page-action-button .svg-icon svg,

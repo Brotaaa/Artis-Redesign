@@ -538,8 +538,18 @@
   }
 
   /* ── 6b1. Changelog + bouton version ──────────────────────── */
-  const ARTIS_VERSION = '1.9.38';
+  const ARTIS_VERSION = '1.9.41';
   const CHANGELOG = [
+    { v: '1.9.41', d: '2026-06-09', notes: [
+      'Volet menu : vrai déroulé glissé de gauche à droite (sort de derrière la sidebar) au lieu de « popper »',
+    ]},
+    { v: '1.9.40', d: '2026-06-09', notes: [
+      'Toolbar haut-droite : retour des rectangles arrondis clairs sur les boutons (fond plus visible)',
+    ]},
+    { v: '1.9.39', d: '2026-06-09', notes: [
+      'Menu de gauche : se déroule au SURVOL de la zone (animation lente et organique), plus besoin de cliquer',
+      'Menu de gauche : bouton flèche de déroulement retiré',
+    ]},
     { v: '1.9.38', d: '2026-06-09', notes: [
       'Volet menu : VRAI correctif des trous — sous-menus repliés via max-height (le grid 0fr ne marchait pas avec plusieurs enfants)',
     ]},
