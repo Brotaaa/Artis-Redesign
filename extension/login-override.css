@@ -8,9 +8,9 @@
 
 /* ── Variables ────────────────────────────────────────────── */
 :root {
-  --l-bg:       #07071a;
-  --l-s1:       #0d0d28;
-  --l-s2:       #12122f;
+  --l-bg:       #16163a;
+  --l-s1:       #1d1d4a;
+  --l-s2:       #242456;
   --l-p:        #6366f1;
   --l-p2:       #818cf8;
   --l-p3:       #a5b4fc;
@@ -70,7 +70,8 @@ html, body, body.login-page {
 
 /* ── Logo ────────────────────────────────────────────────── */
 .login-img {
-  max-width: 130px !important;
+  max-width: 220px !important;
+  width: 220px !important;
   height: auto !important;
   filter: brightness(0) invert(1) !important;
   opacity: 0.92 !important;
@@ -318,6 +319,72 @@ button[type="submit"],
   border-color: rgba(99,102,241,0.4) !important;
   color: var(--l-p3) !important;
   transform: translateY(-1px) !important;
+}
+
+/* ── Rangée de boutons (SSO / Entrer / i) ─────────────────────
+   Problème : .btn { width:100% } poussait chaque bouton à pleine largeur →
+   débordement hors de la carte. On cible UNIQUEMENT le conteneur qui contient
+   plusieurs boutons (la rangée SSO) et on rend les boutons largeur auto. */
+:has(> .btn + .btn) {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+}
+/* Boutons côte à côte, se partagent la largeur sans déborder */
+:has(> .btn + .btn) > .btn {
+  flex: 1 1 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 0 12px !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.01em !important;
+}
+/* Case « Rester connecté » : centrée, pleine largeur sur sa propre ligne */
+:has(> .btn + .btn) > label,
+:has(> .btn + .btn) > .checkbox,
+:has(> .btn + .btn) > .form-check {
+  flex: 1 0 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 0 4px 0 !important;
+  order: -1 !important;
+}
+/* La rangée peut alors passer en wrap pour mettre la case au-dessus, centrée */
+:has(> .btn + .btn) { flex-wrap: wrap !important; }
+
+/* Case à cocher « Rester connecté » : carré → arrondi */
+#loginForm input[type="checkbox"],
+.login-wrapper input[type="checkbox"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 6px !important;
+  border: 1.5px solid rgba(99,102,241,0.5) !important;
+  background: rgba(255,255,255,0.05) !important;
+  cursor: pointer !important;
+  position: relative !important;
+  transition: background 0.2s, border-color 0.2s !important;
+  vertical-align: middle !important;
+  margin-right: 8px !important;
+}
+#loginForm input[type="checkbox"]:checked,
+.login-wrapper input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, #6366f1, #818cf8) !important;
+  border-color: #818cf8 !important;
+}
+#loginForm input[type="checkbox"]:checked::after,
+.login-wrapper input[type="checkbox"]:checked::after {
+  content: '' !important;
+  position: absolute !important;
+  left: 5px !important; top: 1.5px !important;
+  width: 5px !important; height: 9px !important;
+  border: solid #fff !important;
+  border-width: 0 2px 2px 0 !important;
+  transform: rotate(45deg) !important;
 }
 
 /* ── Footer card ──────────────────────────────────────────── */

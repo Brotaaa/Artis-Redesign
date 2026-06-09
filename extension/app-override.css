@@ -5,6 +5,16 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
+/* ── Anti-saccade reload : masque le contenu tant que le thème
+   n'est pas appliqué, puis fade-in une fois prêt (.artis-ready).
+   Si l'extension est désactivée, cette feuille est désactivée →
+   le body reste visible (pas de blocage). ─────────────────── */
+body { opacity: 0; }
+html.artis-ready body { opacity: 1; transition: opacity 0.28s ease; }
+/* Sécurité : si le JS ne pose jamais la classe, on révèle après 1.2s */
+@keyframes artis-failsafe-reveal { to { opacity: 1; } }
+body { animation: artis-failsafe-reveal 0.01s linear 1.2s forwards; }
+
 /* ── Variables DARK (défaut) ──────────────────────────────── */
 :root,
 html:not(.artis-light) {
@@ -339,8 +349,11 @@ html.artis-light *::-webkit-scrollbar-thumb:hover { background: #a5b4fc !importa
 }
 
 #artis-theme-toggle svg {
-  width: 62px !important;
-  height: 62px !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  flex-shrink: 0 !important;
   stroke-width: 1.6 !important;
 }
 
@@ -358,6 +371,16 @@ html.artis-light #artis-theme-toggle:hover {
   background: rgba(255,255,255,0.2) !important;
 }
 
+/* ── Bouton GILES (sidebar) — vert émeraude pour le distinguer ─ */
+#giles-aside-btn {
+  color: rgba(52,211,153,0.85) !important;
+}
+#giles-aside-btn:hover {
+  color: #34d399 !important;
+  background: rgba(16,185,129,0.14) !important;
+}
+#giles-aside-btn svg { width: 30px !important; height: 30px !important; min-width: 30px !important; min-height: 30px !important; flex-shrink: 0 !important; }
+
 /* ── Bouton VERSION ───────────────────────────────────────── */
 #artis-version-btn {
   position: relative !important;
@@ -367,7 +390,7 @@ html.artis-light #artis-theme-toggle:hover {
   color: #a5b4fc !important;
   background: rgba(99,102,241,0.16) !important;
 }
-#artis-version-btn svg { width: 50px !important; height: 50px !important; }
+#artis-version-btn svg { width: 30px !important; height: 30px !important; min-width: 30px !important; min-height: 30px !important; flex-shrink: 0 !important; }
 
 .artis-version-badge {
   position: absolute !important;
@@ -631,7 +654,7 @@ body > form footer {
 .artis-stagger-init { opacity: 0 !important; }   /* état initial avant lancement */
 
 .artis-stagger-go {
-  animation: artis-aside-in 0.46s cubic-bezier(0.34,1.56,0.64,1) both !important;
+  animation: artis-aside-in 1.3s cubic-bezier(0.34,1.4,0.64,1) both !important;
 }
 
 @keyframes artis-aside-in {
@@ -775,6 +798,26 @@ html.artis-page-planning .global-search-button-shortcut {
   display: none !important;
 }
 
+/* Page planning : le panel menu est DOCKÉ (pas un flyout) → le remettre
+   dans le flux pour qu'il ne dépasse pas / ne déborde pas derrière le contenu.
+   (L'overlay absolu reste actif sur les pages type accueil/favoris.) */
+html.artis-page-planning .aside-secondary {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  height: auto !important;
+  z-index: auto !important;
+  transform: none !important;
+  opacity: 1 !important;
+  animation: none !important;
+}
+html.artis-page-planning #kt_aside_workspace,
+html.artis-page-planning #kt_aside_workspace > div,
+html.artis-page-planning #kt_aside_workspace .tab-content {
+  overflow: visible !important;
+  background: transparent !important;
+}
+
 /* Page entreeVisualiser : effacer la bande vide derrière le card favoris
    (transparent + sans bordure/ombre, mais on garde le contenu visible) */
 html.artis-page-entree .aside-secondary {
@@ -879,6 +922,15 @@ html.artis-page-entree .aside-secondary .tab-pane:empty {
   padding: 9px 12px !important;
 }
 
+/* Conteneur menu : pas de marge (Bootstrap my-5) → items à la queue leu leu */
+.aside-secondary .menu,
+.aside-secondary .menu-column,
+.aside-secondary .menu_ARTIS_NET,
+.aside-secondary [class*="menu_"] {
+  margin: 0 !important;
+}
+.aside-secondary .menu-item.menu-accordion { margin: 0 !important; }
+
 /* Lien menu */
 .menu-link {
   background: transparent !important;
@@ -946,11 +998,13 @@ html.artis-page-entree .aside-secondary .tab-pane:empty {
 
 /* Déroulé accordéon fluide — Metronic toggle .show/.hiding */
 .menu-sub-accordion {
-  display: grid !important;
-  grid-template-rows: 0fr !important;
+  display: block !important;
+  max-height: 0 !important;             /* replié = 0 (fiable avec plusieurs enfants) */
   opacity: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
   transition:
-    grid-template-rows 0.42s cubic-bezier(0.22,1,0.36,1),
+    max-height 0.42s cubic-bezier(0.22,1,0.36,1),
     opacity 0.32s ease,
     padding 0.42s cubic-bezier(0.22,1,0.36,1) !important;
 }
@@ -963,7 +1017,7 @@ html.artis-page-entree .aside-secondary .tab-pane:empty {
 .menu-item.here > .menu-sub-accordion,
 .menu-accordion.show > .menu-sub-accordion,
 .show > .menu-sub-accordion {
-  grid-template-rows: 1fr !important;
+  max-height: 600px !important;
   opacity: 1 !important;
 }
 
@@ -1710,6 +1764,20 @@ html.artis-light .ui-menu {
 .menu.menu-sub-dropdown .menu-link:hover { background: rgba(99,102,241,0.12) !important; color: var(--a-p2) !important; }
 .menu.menu-sub-dropdown .img-background { opacity: 0.05 !important; color: var(--a-p2) !important; }
 
+/* Menu utilisateur (image profil → dropdown body-level) : texte lisible.
+   Metronic colore .menu-title via menu-title-gray-600 (forte spécificité) → forcer clair. */
+.menu.menu-sub-dropdown .menu-item .menu-link .menu-title,
+.menu.menu-sub-dropdown .menu-link .menu-title,
+.menu.menu-sub-dropdown .menu-title,
+.menu.menu-sub-dropdown .menu-content span,
+.menu.menu-sub-dropdown span {
+  color: #e2e8f0 !important;
+}
+.menu.menu-sub-dropdown .menu-link:hover .menu-title { color: var(--a-p2) !important; }
+.menu.menu-sub-dropdown .text-body-secondary,
+.menu.menu-sub-dropdown .fw-light { color: var(--a-muted) !important; }
+.menu.menu-sub-dropdown hr { border-color: rgba(99,102,241,0.2) !important; opacity: 1 !important; }
+
 /* ══════════════════════════════════════════════════════════
    INPUTS / FORMS
    ══════════════════════════════════════════════════════════ */
@@ -1763,14 +1831,27 @@ input[type="submit"],
 input[type="reset"],
 button[style],
 .btn[style] {
-  background: rgba(255,255,255,0.07) !important;
-  background-color: rgba(255,255,255,0.07) !important;
-  border: 1px solid rgba(99,102,241,0.18) !important;
+  background: rgba(255,255,255,0.1) !important;
+  background-color: rgba(255,255,255,0.1) !important;
+  border: 1px solid rgba(99,102,241,0.28) !important;
   border-radius: 8px !important;
-  color: var(--a-muted) !important;
+  color: var(--a-text) !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
 }
+
+/* Texte + icônes À L'INTÉRIEUR des boutons (toolbar haut-droite : Insérer DIT,
+   Insérer action, sélecteur de date, engrenage, flèches…) → clairs et lisibles.
+   Artis met souvent .text-dark / couleurs sombres sur ces libellés. */
+button:not(.btn-primary):not(.btn-info):not(.btn-success) span,
+button:not(.btn-primary):not(.btn-info):not(.btn-success) i,
+.btn:not(.btn-primary):not(.btn-info):not(.btn-success) span,
+.btn:not(.btn-primary):not(.btn-info):not(.btn-success) i,
+.page-action-button span, .btn-breadcrumb span,
+.daterangepicker + * span {
+  color: #e2e8f0 !important;
+}
+button svg path, .btn svg path { fill: currentColor !important; }
 
 button:hover,
 .btn:hover,
@@ -1779,6 +1860,7 @@ button:hover,
   background-color: rgba(99,102,241,0.15) !important;
   border-color: rgba(99,102,241,0.35) !important;
   color: var(--a-p2) !important;
+  box-shadow: 0 4px 18px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.25) !important;
 }
 
 /* Variantes explicitement blanches / claires */
@@ -1805,6 +1887,7 @@ button:hover,
   background: rgba(99,102,241,0.15) !important;
   border-color: rgba(99,102,241,0.35) !important;
   color: var(--a-p2) !important;
+  box-shadow: 0 4px 18px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.25) !important;
 }
 
    ══════════════════════════════════════════════════════════ */
@@ -1844,38 +1927,147 @@ button:hover,
 .btn-secondary:hover, .btn-default:hover, .btn-dark:hover {
   background: rgba(255,255,255,0.12) !important;
   color: var(--a-text) !important;
+  box-shadow: 0 4px 18px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.25) !important;
 }
+
+/* ── Boutons breadcrumb haut-droite (Précédent / Suivant / Fermer)
+   Artis met .text-dark → icônes noires invisibles sur dark.
+   Force couleur claire (svg fill=currentColor) + même taille. ── */
+.page-action-button,
+.btn-breadcrumb,
+.page-action-button.text-dark,
+.btn-breadcrumb.text-dark,
+.page-action-button *,
+.btn-breadcrumb * {
+  color: #f1f5f9 !important;   /* BLANC comme les icônes (texte + flèches + croix) */
+  background: transparent !important;
+  border: none !important;
+}
+.page-action-button,
+.btn-breadcrumb {
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(99,102,241,0.18) !important;
+  border-radius: 8px !important;
+}
+.page-action-button .svg-icon svg,
+.btn-breadcrumb .svg-icon svg,
+.page-action-button .svg-icon svg path,
+.btn-breadcrumb .svg-icon svg path,
+.page-action-button svg, .btn-breadcrumb svg,
+.page-action-button svg path, .btn-breadcrumb svg path {
+  color: #f1f5f9 !important;
+  fill: currentColor !important;
+}
+.page-action-button .svg-icon svg,
+.btn-breadcrumb .svg-icon svg {
+  width: 24px !important;
+  height: 24px !important;
+}
+.page-action-button:hover,
+.btn-breadcrumb:hover {
+  color: #c7d2fe !important;
+  background: rgba(99,102,241,0.16) !important;
+  border-color: rgba(99,102,241,0.4) !important;
+  box-shadow: 0 4px 18px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.25) !important;
+}
+.page-action-button:hover .svg-icon svg path,
+.btn-breadcrumb:hover .svg-icon svg path { color: #c7d2fe !important; }
 
 /* ══════════════════════════════════════════════════════════
    LOADING — spinner moderne indigo (remplace diamant bleu)
    ══════════════════════════════════════════════════════════ */
+/* ⚠️ NE PAS forcer `display` ici : Artis masque l'overlay via display:none.
+   Un `display:flex !important` le rendrait permanent et bloquerait le site.
+   On force seulement le plein écran + le fond ; Artis garde le contrôle de
+   l'affichage/masquage. */
 .divChargement {
-  background: radial-gradient(ellipse at center, rgba(19,19,44,0.92) 0%, rgba(8,8,22,0.96) 100%) !important;
-  backdrop-filter: blur(16px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  z-index: 2147483600 !important;
+  /* Quasi-opaque → masque le contenu pendant le reload */
+  background: radial-gradient(ellipse at center, rgba(17,17,40,0.985) 0%, rgba(6,6,18,0.995) 100%) !important;
+  backdrop-filter: blur(22px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
 }
 
-/* Conteneur loader → centre tout */
+/* Conteneur loader → centré dans le viewport sans toucher au display de l'overlay */
 .chgtContent,
 .box-rotate-loader {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+  animation: artis-loader-pop 0.4s cubic-bezier(0.22,1,0.36,1) both !important;
 }
 
-/* Masquer le diamant bleu d'origine + son ombre */
-.box-rotate-box,
-.box-rotate-loader > *:not(.artis-loader) {
+@keyframes artis-loader-pop {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Retirer le bouton « Annuler la recherche » (et tout lien/bouton de l'overlay) */
+.divChargement a,
+.divChargement button,
+.divChargement input[type="button"],
+.divChargement [onclick],
+.chgtContent a,
+.chgtContent button {
   display: none !important;
 }
+
+/* Masquer le diamant/carré bleu d'origine + son ombre + logo/image résiduels.
+   On masque TOUT descendant des conteneurs loader SAUF notre loader, son noyau
+   et le texte → élimine le carré noir derrière les anneaux. */
+.box-rotate-loader *:not(.artis-loader):not(.artis-loader-core):not(.chgtText),
+.chgtContent > img,
+.chgtContent > svg,
+.divChargement > img,
+.divChargement > svg {
+  display: none !important;
+}
+
+/* Aucun fond / ombre / bordure résiduels sur les conteneurs loader */
+.box-rotate-loader,
+.box-rotate-loader > *:not(.artis-loader),
+.chgtContent,
+[class*="box-rotate"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+/* sauf notre loader injecté */
+.artis-loader, .artis-loader * { display: revert !important; }
 
 /* Nouveau loader injecté via JS : double anneau orbital + noyau */
 .artis-loader {
   position: relative !important;
-  width: 64px !important;
-  height: 64px !important;
-  margin: 0 auto 26px !important;
+  width: 96px !important;
+  height: 96px !important;
+  margin: 0 auto 30px !important;
+  filter: drop-shadow(0 8px 30px rgba(99,102,241,0.35)) !important;
+}
+
+/* Halo lumineux derrière le loader */
+.artis-loader-core::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important; left: 50% !important;
+  width: 130px !important; height: 130px !important;
+  transform: translate(-50%,-50%) !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle, rgba(99,102,241,0.30) 0%, transparent 65%) !important;
+  animation: artis-core-pulse 1.8s ease-in-out infinite !important;
+  pointer-events: none !important;
 }
 
 /* Anneau externe */
@@ -1884,34 +2076,35 @@ button:hover,
   position: absolute !important;
   inset: 0 !important;
   border-radius: 50% !important;
-  border: 3px solid transparent !important;
+  border: 4px solid transparent !important;
   border-top-color: #6366f1 !important;
   border-right-color: #818cf8 !important;
   animation: artis-spin 0.9s cubic-bezier(0.5,0,0.5,1) infinite !important;
-  filter: drop-shadow(0 0 6px rgba(99,102,241,0.5)) !important;
+  filter: drop-shadow(0 0 10px rgba(99,102,241,0.7)) !important;
 }
 
 /* Anneau interne (sens inverse) */
 .artis-loader::after {
   content: '' !important;
   position: absolute !important;
-  inset: 11px !important;
+  inset: 16px !important;
   border-radius: 50% !important;
-  border: 3px solid transparent !important;
+  border: 4px solid transparent !important;
   border-bottom-color: #a5b4fc !important;
-  border-left-color: rgba(129,140,248,0.6) !important;
+  border-left-color: rgba(129,140,248,0.7) !important;
   animation: artis-spin-rev 0.7s linear infinite !important;
+  filter: drop-shadow(0 0 6px rgba(165,180,252,0.5)) !important;
 }
 
 /* Noyau pulsant central */
 .artis-loader-core {
   position: absolute !important;
   top: 50% !important; left: 50% !important;
-  width: 14px !important; height: 14px !important;
-  margin: -7px 0 0 -7px !important;
+  width: 20px !important; height: 20px !important;
+  margin: -10px 0 0 -10px !important;
   border-radius: 50% !important;
-  background: radial-gradient(circle, #a5b4fc 0%, #6366f1 70%) !important;
-  box-shadow: 0 0 14px rgba(99,102,241,0.8) !important;
+  background: radial-gradient(circle, #c7d2fe 0%, #6366f1 70%) !important;
+  box-shadow: 0 0 22px rgba(99,102,241,0.9) !important;
   animation: artis-core-pulse 1.4s ease-in-out infinite !important;
 }
 
@@ -1924,12 +2117,13 @@ button:hover,
 
 /* Texte chargement */
 .chgtText {
-  color: #cbd5e1 !important;
+  color: #e2e8f0 !important;
   font-family: 'Plus Jakarta Sans', sans-serif !important;
-  font-size: 0.9rem !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.04em !important;
+  font-size: 1.02rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
   text-align: center !important;
+  text-shadow: 0 2px 12px rgba(99,102,241,0.4) !important;
   animation: artis-text-breathe 2.2s ease-in-out infinite !important;
 }
 
@@ -1954,6 +2148,18 @@ html.artis-light .chgtText { color: #475569 !important; }
   box-shadow: 0 24px 64px rgba(0,0,0,0.6) !important;
   color: var(--a-text) !important;
   font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+/* Centrer le popup SweetAlert au milieu de l'écran (pas en haut) */
+.swal2-container {
+  align-items: center !important;
+  grid-template-rows: minmax(min-content, auto) !important;
+}
+.swal2-container > .swal2-popup,
+.swal2-popup {
+  place-self: center center !important;
+  align-self: center !important;
+  grid-row: 2 !important;
 }
 
 .swal2-title { color: var(--a-text) !important; }
@@ -2202,6 +2408,53 @@ table tbody tr:hover td,
   color: var(--a-text) !important;
 }
 
+/* Bootstrap 5 colore les lignes striées via variables CSS sur les <td>
+   (--bs-table-bg / --bs-table-striped-bg). Inline ou via classe, ça pouvait
+   laisser des lignes BLANCHES illisibles (ex : tableaux DIT « Tâches à planifier »).
+   On force toutes les variables de table en dark. */
+table, .table, table.dataTable, [class*="table"] {
+  --bs-table-bg: transparent !important;
+  --bs-table-color: #e2e8f0 !important;
+  --bs-table-striped-bg: rgba(99,102,241,0.06) !important;
+  --bs-table-striped-color: #e2e8f0 !important;
+  --bs-table-accent-bg: transparent !important;
+  --bs-table-active-bg: rgba(99,102,241,0.10) !important;
+  --bs-table-active-color: #e2e8f0 !important;
+  --bs-table-hover-bg: rgba(99,102,241,0.10) !important;
+  --bs-table-hover-color: #e2e8f0 !important;
+}
+/* Bootstrap 5.3 peint les cellules striées via box-shadow inset alimenté par
+   --bs-table-bg-type (= --bs-table-striped-bg = #eee). background-color ne suffit
+   donc PAS : il faut écraser la variable sur les cellules elles-mêmes. */
+.table-striped > tbody > tr:nth-of-type(odd) > *,
+table.dataTable.table-striped > tbody > tr.odd > *,
+table.dataTable.table-striped > tbody > tr.even > *,
+table.dataTable > tbody > tr.odd > *,
+table tbody tr:nth-of-type(odd) > * {
+  --bs-table-bg-type: rgba(99,102,241,0.06) !important;
+  --bs-table-accent-bg: rgba(99,102,241,0.06) !important;
+  --bs-table-color-type: #e2e8f0 !important;
+  color: #e2e8f0 !important;
+}
+table tbody tr:nth-of-type(even) > *,
+table.dataTable > tbody > tr.even > * {
+  --bs-table-bg-type: transparent !important;
+  --bs-table-accent-bg: transparent !important;
+  color: #e2e8f0 !important;
+}
+/* hover : tint violet plus marqué via la même variable */
+table.dataTable.table-hover > tbody > tr:hover > *,
+.table-hover > tbody > tr:hover > * {
+  --bs-table-bg-type: rgba(99,102,241,0.12) !important;
+  --bs-table-accent-bg: rgba(99,102,241,0.12) !important;
+  color: #e2e8f0 !important;
+}
+/* Filet de sécurité : lignes au fond clair inline → texte clair */
+table tbody tr[style*="background"] td,
+table tbody tr td[style*="background"] {
+  color: #e2e8f0 !important;
+}
+
 /* DataTables spécifique */
 table.dataTable tbody tr {
   background: transparent !important;
@@ -2426,6 +2679,15 @@ input, select, textarea, .form-control,
   box-shadow: 0 8px 30px rgba(0,0,0,0.45) !important;
 }
 
+/* PAS de lift sur le gros bloc de fond de l'EDT / planning (gêne au survol) */
+body.page-ccPlanningV2 .card:hover,
+.card:has(#planning-container):hover,
+.card:has(.planning-event):hover,
+.card:has(.table-grid):hover {
+  transform: none !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35) !important;
+}
+
 /* ── Hover: icône sidebar scale ─────────────────────────── */
 .aside-primary .nav-link.btn.btn-icon:hover {
   transform: scale(1.08) !important;
@@ -2469,4 +2731,105 @@ button:active,
     animation-delay: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ── Date range picker (sélecteur de semaine / période EDT) ── */
+.daterangepicker {
+  background: rgba(13,13,38,0.97) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border: 1px solid rgba(99,102,241,0.25) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.55) !important;
+  color: #e2e8f0 !important;
+}
+.daterangepicker::before,
+.daterangepicker::after { display: none !important; }
+
+/* Liste des raccourcis (Aujourd'hui, Cette semaine…) */
+.daterangepicker .ranges ul { background: transparent !important; }
+.daterangepicker .ranges li {
+  color: rgba(203,213,225,0.9) !important;
+  background: transparent !important;
+  border-radius: 8px !important;
+  transition: background .15s ease, color .15s ease !important;
+}
+.daterangepicker .ranges li:hover {
+  background: rgba(99,102,241,0.15) !important;
+  color: #a5b4fc !important;
+}
+.daterangepicker .ranges li.active {
+  background: linear-gradient(135deg, #6366f1, #818cf8) !important;
+  color: #fff !important;
+}
+
+/* En-têtes calendrier + jours de la semaine */
+.daterangepicker .calendar-table {
+  background: transparent !important;
+  border: none !important;
+}
+.daterangepicker .calendar-table table,
+.daterangepicker table.table-condensed { background: transparent !important; }
+.daterangepicker th,
+.daterangepicker .month { color: #cbd5e1 !important; }
+
+/* Cellules de jours */
+.daterangepicker td {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+  border-radius: 8px !important;
+}
+.daterangepicker td.available:hover,
+.daterangepicker th.available:hover {
+  background: rgba(99,102,241,0.18) !important;
+  color: #a5b4fc !important;
+}
+.daterangepicker td.off,
+.daterangepicker td.off.in-range,
+.daterangepicker td.off.start-date,
+.daterangepicker td.off.end-date {
+  background: transparent !important;
+  color: rgba(148,163,184,0.45) !important;
+}
+.daterangepicker td.in-range {
+  background: rgba(99,102,241,0.15) !important;
+  color: #e2e8f0 !important;
+}
+.daterangepicker td.active,
+.daterangepicker td.active:hover,
+.daterangepicker td.start-date,
+.daterangepicker td.end-date {
+  background: linear-gradient(135deg, #6366f1, #818cf8) !important;
+  color: #fff !important;
+}
+.daterangepicker td.today:not(.active) {
+  box-shadow: inset 0 0 0 1px rgba(129,140,248,0.6) !important;
+}
+
+/* Flèches mois précédent / suivant */
+.daterangepicker .prev span,
+.daterangepicker .next span { border-color: #a5b4fc !important; }
+
+/* Barre de boutons */
+.daterangepicker .drp-buttons {
+  border-top: 1px solid rgba(99,102,241,0.2) !important;
+}
+.daterangepicker .drp-selected { color: #94a3b8 !important; }
+.daterangepicker .drp-buttons .btn-default {
+  background: rgba(99,102,241,0.12) !important;
+  border: 1px solid rgba(99,102,241,0.3) !important;
+  color: #cbd5e1 !important;
+}
+.daterangepicker .drp-buttons .btn-primary {
+  background: linear-gradient(135deg, #6366f1, #818cf8) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+/* Champs heure éventuels */
+.daterangepicker select,
+.daterangepicker .calendar-time select {
+  background: rgba(15,15,40,0.9) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(99,102,241,0.3) !important;
 }

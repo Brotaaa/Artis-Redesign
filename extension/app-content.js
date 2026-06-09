@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    Artis App Enhancer — Content Script (interface interne)
    ============================================================ */
 
@@ -354,6 +354,62 @@
     root.querySelectorAll('*').forEach(stripWhiteBg);
   }
 
+  /* ── 4bis. Préfixe d'état sur les blocs planning (✅ crité / ❌ non crité) ── */
+  const CRITE_EMOJI = '✅';        // ✅
+  const NONCRITE_EMOJI = '❌';     // ❌
+  const REUNION_EMOJI = '⏳';      // ⏳ sablier (blocs de réunion)
+  const STATE_EMOJI_RE = /^[✅❌⏳]\s*/u;   // emoji déjà présent en tête
+
+  /* Un bloc est une "réunion" = rendez-vous agenda synchronisé (menu contextuel Appointment),
+     ou dont le titre visible est « Réunion ». */
+  function isBlockReunion(evt, title) {
+    if (evt.getAttribute('data-contextmenu') === 'contextMenuAppointment') return true;
+    const t = (title ? title.textContent : '').replace(STATE_EMOJI_RE, '').trim().toLowerCase();
+    return t === 'réunion' || t === 'reunion';
+  }
+
+  /* Un bloc est une vraie "intervention" (DIT/IT) → seul cas où ✅/❌ a un sens.
+     Les blocs de temps non productif (is-planning-tnp : réservation, absence…) n'ont pas
+     d'état crité et ne doivent PAS recevoir ✅/❌. */
+  function isBlockIntervention(evt) {
+    if (evt.classList.contains('is-planning-tnp')) return false;
+    const idd = evt.getAttribute('data-iddit');
+    if (idd && idd !== 'null' && idd !== '0') return true;
+    return evt.getAttribute('data-productif') === 'true';
+  }
+
+  /* Un bloc est "crité" s'il est réalisé (CRIT saisi) → affiché en gris par Artis.
+     Source fiable : classe is-planning-realise ; secours : fond gris ou idinterrealisee renseigné. */
+  function isBlockCrite(evt) {
+    if (evt.classList.contains('is-planning-realise')) return true;
+    const idr = evt.getAttribute('data-idinterrealisee');
+    if (idr && idr !== 'null' && idr !== '0') return true;
+    const panel = evt.querySelector('.panel-planning');
+    const bg = panel && (panel.style.backgroundColor || '').replace(/\s+/g, '').toLowerCase();
+    return bg === 'rgb(162,162,162)' || bg === '#a2a2a2';
+  }
+
+  function applyStateEmoji(evt) {
+    if (!evt || !evt.classList || !evt.classList.contains('planning-event')) return;
+    /* Titre visible du bloc = .panel-heading > .left */
+    const title = evt.querySelector('.panel-heading .left');
+    if (!title) return;
+    /* Réunion ⏳ ; intervention ✅/❌ ; autre TNP (réservation…) → aucun emoji */
+    let wanted = '';
+    if (isBlockReunion(evt, title)) wanted = REUNION_EMOJI;
+    else if (isBlockIntervention(evt)) wanted = isBlockCrite(evt) ? CRITE_EMOJI : NONCRITE_EMOJI;
+    const raw = title.textContent.replace(STATE_EMOJI_RE, '');  // retire un éventuel emoji précédent
+    const next = wanted ? (wanted + ' ' + raw) : raw;
+    if (title.textContent !== next) title.textContent = next;   // n'écrit que si changement (anti-boucle observer)
+  }
+
+  function tagPlanningBlocks(root) {
+    const scope = (root && root.querySelectorAll) ? root : document;
+    scope.querySelectorAll('.planning-event').forEach(applyStateEmoji);
+    /* root peut être lui-même un bloc */
+    if (root && root.classList && root.classList.contains('planning-event')) applyStateEmoji(root);
+  }
+
   /* ── 5. Observe DOM for dynamic panels + new table rows ──── */
   function observeDOM() {
     const observer = new MutationObserver(mutations => {
@@ -381,6 +437,9 @@
             stripAllWhite(node);
             stripAllArtisBlueBg(node);
           }
+          /* Blocs planning ajoutés dynamiquement → préfixe d'état */
+          if (node.classList && node.classList.contains('planning-event')) applyStateEmoji(node);
+          else if (node.querySelector && node.querySelector('.planning-event')) tagPlanningBlocks(node);
         });
 
         /* Also handle attribute changes (inline style mutations on existing nodes) */
@@ -388,18 +447,31 @@
           stripWhiteBg(m.target);
           stripArtisBlueBg(m.target);
         }
+        /* Changement d'état d'un bloc (classe / data / contenu) → maj emoji */
+        if (m.type === 'attributes' &&
+            (m.attributeName === 'class' || m.attributeName === 'data-idinterrealisee')) {
+          const evt = m.target.closest ? m.target.closest('.planning-event') : null;
+          if (evt) applyStateEmoji(evt);
+        }
+        if (m.type === 'childList' && m.target.closest) {
+          const evt = m.target.closest('.planning-event');
+          if (evt) applyStateEmoji(evt);
+        }
       });
     });
     observer.observe(document.body, {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['style'],
+      attributeFilter: ['style', 'class', 'data-idinterrealisee'],
     });
   }
 
   /* ── 6. Theme toggle button (dark ↔ light) ───────────────── */
   const STORAGE_KEY = 'artis-theme';
+
+  /* Réglages pilotés par la popup (chrome.storage.local) — défauts = activés */
+  const CFG = { dark: true, versionBtn: true };
 
   const MOON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`;
   const SUN_SVG  = `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`;
@@ -409,9 +481,14 @@
     const sidebar = document.querySelector('.aside-primary');
     if (!sidebar) return;
 
-    /* Restore saved theme */
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'light') document.documentElement.classList.add('artis-light');
+    /* Mode sombre piloté par la popup (CFG.dark). false = thème clair forcé. */
+    if (!CFG.dark) {
+      document.documentElement.classList.add('artis-light');
+      try { localStorage.setItem(STORAGE_KEY, 'light'); } catch (e) {}
+    } else {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved === 'light') document.documentElement.classList.add('artis-light');
+    }
 
     /* Liste de TOUS les wrappers boutons existants pour cloner + se coller */
     const allWrappers = Array.from(sidebar.querySelectorAll('.aside-item-btn'));
@@ -456,13 +533,165 @@
       }, 150);
     });
 
-    /* ── Bouton VERSION (sous le toggle theme) ──────────────── */
-    injectVersionButton(wrapper);
+    /* ── Bouton VERSION (sous le toggle theme) — masquable via popup ── */
+    if (CFG.versionBtn) injectVersionButton(wrapper);
   }
 
   /* ── 6b1. Changelog + bouton version ──────────────────────── */
-  const ARTIS_VERSION = '1.8.0';
+  const ARTIS_VERSION = '1.9.38';
   const CHANGELOG = [
+    { v: '1.9.38', d: '2026-06-09', notes: [
+      'Volet menu : VRAI correctif des trous — sous-menus repliés via max-height (le grid 0fr ne marchait pas avec plusieurs enfants)',
+    ]},
+    { v: '1.9.37', d: '2026-06-09', notes: [
+      'Volet menu : items collés à la queue leu leu (sous-menus repliés ne laissent plus de gros trous)',
+      'Volet menu : replié par défaut au chargement — se déplie via le bouton flèche natif (#kt_aside_toggle)',
+    ]},
+    { v: '1.9.36', d: '2026-06-09', notes: [
+      'Chargement : suppression du carré noir résiduel derrière le loader (fond/boîte d\'origine masqués)',
+    ]},
+    { v: '1.9.35', d: '2026-06-09', notes: [
+      'Gilles : clic en dehors du pop-up → il se réduit automatiquement',
+    ]},
+    { v: '1.9.34', d: '2026-06-09', notes: [
+      'Gilles : champ de saisie centré + effet dégradé/glow assorti au bouton flèche, hauteurs réalignées',
+    ]},
+    { v: '1.9.33', d: '2026-06-09', notes: [
+      'Toolbar haut-droite : textes « Insérer DIT / action » + flèches + croix en BLANC (comme les icônes)',
+      'Bouton Gilles : nouveau logo (bulle de chat IA) plus clair',
+    ]},
+    { v: '1.9.32', d: '2026-06-09', notes: [
+      'Popups de confirmation (SweetAlert) centrés au milieu de l\'écran au lieu d\'en haut',
+    ]},
+    { v: '1.9.31', d: '2026-06-09', notes: [
+      'Loader chargement : fin du doublon (injectait 2 loaders quand .chgtContent contenait .box-rotate-loader) + logo Artis résiduel masqué',
+    ]},
+    { v: '1.9.30', d: '2026-06-09', notes: [
+      'CORRECTIF : l\'overlay de chargement ne bloque plus le site (ne forçait plus display → restait permanent)',
+      'Loader chargement : centré dans l\'écran (position fixe) au lieu de forcer le display de l\'overlay',
+      'Chargement : bouton « Annuler la recherche » retiré',
+    ]},
+    { v: '1.9.29', d: '2026-06-09', notes: [
+      'Login : texte des boutons SSO / Entrer / i réduit (tient mieux)',
+    ]},
+    { v: '1.9.28', d: '2026-06-09', notes: [
+      'Login : boutons SSO / Entrer / i côte à côte, case « Rester connecté » centrée au-dessus',
+      'Login : case à cocher arrondie + coche violette',
+    ]},
+    { v: '1.9.27', d: '2026-06-09', notes: [
+      'Login : boutons SSO / Entrer / i ne débordent plus de la carte (largeur auto, rangée flex)',
+      'Login : logo artis.net agrandi (220px)',
+      'Chargement entre pages : overlay plein écran quasi-opaque (masque le contenu) + loader centré, plus gros et plus lumineux, fade propre',
+      'Toolbar haut-droite : boutons et libellés éclaircis (Insérer DIT/action, date, engrenage, flèches) — texte plus lisible',
+    ]},
+    { v: '1.9.26', d: '2026-06-09', notes: [
+      'Tableaux DIT : fin des lignes blanches illisibles (override de --bs-table-bg-type, pas juste background-color)',
+      'Gilles : lit le texte LIVE de la page (onglet visible) au lieu d\'un clone détaché → ne dit plus « aucune donnée » alors que le tableau est rempli',
+    ]},
+    { v: '1.9.25', d: '2026-06-09', notes: [
+      'Menu utilisateur (clic sur la photo) : texte des liens rendu lisible (Mon profil, Aide, Déconnexion…)',
+    ]},
+    { v: '1.9.24', d: '2026-06-09', notes: [
+      'Login : espacement entre les boutons SSO / Entrer / i (plus collés)',
+    ]},
+    { v: '1.9.23', d: '2026-06-09', notes: [
+      'Gilles : réponses rendues en Markdown (gras, italique, souligné, listes, titres, code) — noms de clients en gras, dates soulignées',
+      'Autoreload entreeVisualiser : seulement quand l\'onglet n\'est pas affiché (pas de reload sous tes yeux)',
+    ]},
+    { v: '1.9.22', d: '2026-06-09', notes: [
+      'Notifications : Gilles prévient quand il répond et que tu n\'es pas sur la page',
+      'Notifications : nouvelles DIT du tableau Clients/Problèmes (page entreeVisualiser) → notif Client + Problème',
+      'Page entreeVisualiser : autoreload toutes les 60 s pour détecter les nouvelles DIT',
+      'Gilles : si aucune clé API configurée → message « Configurez votre clé API dans l\'extension ! »',
+    ]},
+    { v: '1.9.21', d: '2026-06-09', notes: [
+      'Renommage : « Giles » → « Gilles » partout',
+      'Gilles : pop-up retravaillée — onglets en segmented control discret, bulles plus aérées',
+      'Gilles : bandeau de connexion (chargement / hors-ligne) + bouton Réessayer, saisie bloquée si indisponible',
+    ]},
+    { v: '1.9.20', d: '2026-06-09', notes: [
+      'Popup : nouveau réglage « Notifications » (décoché par défaut) — demande l\'autorisation au navigateur pour recevoir des notifs futures',
+    ]},
+    { v: '1.9.19', d: '2026-06-09', notes: [
+      'Gilles : mémoire locale des pages visitées (sessionStorage) — visite le Planning puis une autre page et demande ce qu\'il y avait',
+      'Gilles : si l\'info manque, demande de visiter la page ; précise l\'heure de dernière récupération des données',
+      'Données rafraîchies à chaque chargement de page',
+    ]},
+    { v: '1.9.18', d: '2026-06-09', notes: [
+      'Sidebar : animation d\'entrée encore ralentie (1.3s + stagger 0.22s)',
+      'Gilles : lit le texte de la page affichée (DOM entier, hors-écran inclus) comme contexte',
+    ]},
+    { v: '1.9.17', d: '2026-06-09', notes: [
+      'Boutons breadcrumb (Précédent/Suivant/Fermer) : icônes noires → violet clair + hover glow',
+    ]},
+    { v: '1.9.16', d: '2026-06-09', notes: [
+      'Login : watermark JusteJohn bas-droite retiré',
+      'Login : fond éclairci (canvas + surfaces)',
+    ]},
+    { v: '1.9.15', d: '2026-06-09', notes: [
+      'Login : logo JusteJohn en haut à gauche + bloc connexion centré',
+      'Sidebar : animation d\'entrée ralentie (plus douce)',
+      'Reload : fade-in du contenu (fin des saccades au rechargement)',
+      'Bouton version → logo GitHub : ouvre le repo dans un nouvel onglet',
+      'Effet brillance (glow) au survol garanti sur tous les boutons toolbar',
+      'Icônes injectées (theme/version/Gilles) à la même taille que les natives (30px)',
+    ]},
+    { v: '1.9.14', d: '2026-06-09', notes: [
+      'Planning : panel menu docké remis en flux (ne dépasse plus derrière le contenu)',
+    ]},
+    { v: '1.9.13', d: '2026-06-09', notes: [
+      'Gilles : bouton flottant (FAB) retiré — ouverture uniquement via le bouton sidebar',
+    ]},
+    { v: '1.9.12', d: '2026-06-09', notes: [
+      'Gilles connaît toute la doc Artis (93 fichiers) via récupération ciblée par question',
+      'Correction encodage (BOM/accents) de la base de connaissance',
+    ]},
+    { v: '1.9.11', d: '2026-06-09', notes: [
+      'Plus de lift/zoom parasite au survol du gros bloc de fond de l\'EDT/planning',
+    ]},
+    { v: '1.9.10', d: '2026-06-09', notes: [
+      'Sélecteur de semaine/période (daterangepicker) : thème dark complet (calendrier, raccourcis, boutons)',
+    ]},
+    { v: '1.9.9', d: '2026-06-09', notes: [
+      'Gilles : modèles par défaut = gemini-2.5-flash-lite/2.5-flash (2.0 = quota 0 sur la clé)',
+      'Correction : retrait de gemini-1.5-flash (inexistant pour la clé)',
+      'Fallback aussi sur surcharge (503 "high demand"), plus seulement quota',
+    ]},
+    { v: '1.9.8', d: '2026-06-09', notes: [
+      'Gilles : pop-up déplacée en bas à gauche',
+    ]},
+    { v: '1.9.7', d: '2026-06-09', notes: [
+      'Gilles : fallback multi-modèles Gemini + code QUOTA dédié (quota dépassé)',
+      'Ping API léger (liste modèles) → ne consomme plus de quota à chaque ouverture',
+      'Pastille état API verte/rouge dans le header de Gilles',
+    ]},
+    { v: '1.9.6', d: '2026-06-09', notes: [
+      'Icônes sidebar agrandies : theme 80px, version 66px, Gilles 64px',
+    ]},
+    { v: '1.9.5', d: '2026-06-09', notes: [
+      'Popup : pastille état API (vert = connectée, rouge = vérifier API + code)',
+    ]},
+    { v: '1.9.4', d: '2026-06-09', notes: [
+      'Gilles : logo IA (robot), bouton dans la sidebar (vert) en plus de la bulle',
+      'Gilles : codes d\'erreur détaillés dans le chat (NO_KEY, API, NETWORK…)',
+      'Planning : ✅/❌ réservé aux interventions ; temps non productif (réservation…) sans emoji rouge',
+      'Popup extension : interrupteurs séparés Mode sombre + Bouton version',
+    ]},
+    { v: '1.9.3', d: '2026-06-09', notes: [
+      'Blocs réunion (rendez-vous agenda) : préfixe ⏳ dans le titre, prioritaire sur ✅/❌',
+    ]},
+    { v: '1.9.2', d: '2026-06-09', notes: [
+      'Icône extension : skull JusteJohn sur fond dark arrondi (16/32/48/128), visible en barre claire',
+    ]},
+    { v: '1.9.1', d: '2026-06-09', notes: [
+      'Blocs planning : préfixe d\'état dans le titre (✅ crité/grisé, ❌ non crité)',
+      'Mise à jour automatique de l\'emoji si l\'état du bloc change',
+    ]},
+    { v: '1.9.0', d: '2026-06-09', notes: [
+      'Assistant IA Gilles (pop-up bas de page, Gemini, base artis.txt)',
+      'Mémoire 5 messages + onglet Conversations (stockage local uniquement)',
+      'Slider activer/désactiver dans la popup de l\'extension',
+    ]},
     { v: '1.8.0', d: '2026-06-09', notes: [
       'Barre de recherche masquée sur les pages planning',
       'Pictos theme/version encore agrandis',
@@ -521,7 +750,8 @@
     ]},
   ];
 
-  const VERSION_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`;
+  const GITHUB_REPO = 'https://github.com/SimplementJohn/Artis-Redesign';
+  const VERSION_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.39 1.24-3.23-.12-.31-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.18.77.84 1.24 1.91 1.24 3.23 0 4.63-2.81 5.65-5.49 5.95.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.82.58A12.01 12.01 0 0024 12.5C24 5.87 18.63.5 12 .5z"/></svg>`;
 
   function injectVersionButton(afterWrapper) {
     const ref = afterWrapper;
@@ -531,8 +761,8 @@
     const btn = refBtn ? refBtn.cloneNode(false) : document.createElement('a');
     btn.id = 'artis-version-btn';
     if (refBtn) btn.className = refBtn.className.replace(/\bactive\b/g, '').trim();
-    btn.setAttribute('aria-label', 'Notes de version');
-    btn.setAttribute('title', 'Version ' + ARTIS_VERSION);
+    btn.setAttribute('aria-label', 'Projet GitHub');
+    btn.setAttribute('title', 'GitHub — v' + ARTIS_VERSION);
     btn.setAttribute('role', 'button');
     btn.setAttribute('href', 'javascript:void(0)');
     ['data-kt-menu-trigger','data-bs-toggle','data-bs-target','data-id'].forEach(a => btn.removeAttribute(a));
@@ -540,7 +770,7 @@
     wrapper.appendChild(btn);
     ref.insertAdjacentElement('afterend', wrapper);
 
-    btn.addEventListener('click', showChangelog);
+    btn.addEventListener('click', () => window.open(GITHUB_REPO, '_blank', 'noopener'));
   }
 
   /* ── Stagger entrée sidebar — une seule timeline (natifs+injectés) ── */
@@ -565,7 +795,7 @@
 
     /* Lancer en cascade depuis MAINTENANT (un seul T0 partagé) */
     items.forEach((el, i) => {
-      el.style.animationDelay = (i * 0.075) + 's';
+      el.style.animationDelay = (i * 0.22) + 's';
       el.classList.remove('artis-stagger-init');
       el.classList.add('artis-stagger-go');
     });
@@ -613,7 +843,11 @@
     if (root.querySelectorAll) targets.push(...root.querySelectorAll('.box-rotate-loader, .chgtContent'));
 
     targets.forEach(container => {
-      if (container.querySelector('.artis-loader')) return; // déjà injecté
+      if (container.querySelector('.artis-loader')) return;       // déjà injecté ici
+      if (container.closest('.artis-loader')) return;             // dans un loader déjà injecté
+      /* Évite le doublon : si .chgtContent contient un .box-rotate-loader,
+         on laisse l'injection se faire sur le .box-rotate-loader interne. */
+      if (!container.matches('.box-rotate-loader') && container.querySelector('.box-rotate-loader')) return;
       const loader = document.createElement('div');
       loader.className = 'artis-loader';
       loader.innerHTML = '<span class="artis-loader-core"></span>';
@@ -660,6 +894,21 @@
     if (/entreeVisualiser\.action/i.test(url)) root.classList.add('artis-page-entree');
     if (/ccPlanningV2/i.test(url) || document.body.classList.contains('page-ccPlanningV2'))
       root.classList.add('artis-page-planning');
+  }
+
+  /* ── 6c3. Replier le volet menu par défaut (via le bouton natif Artis) ──
+     On NE force PAS display:none (Artis gère l'état). On clique simplement
+     une fois sur #kt_aside_toggle si le volet est déployé au chargement.
+     L'utilisateur le rouvre avec ce même bouton quand il en a besoin. */
+  function collapseAsideByDefault() {
+    const toggle = document.getElementById('kt_aside_toggle');
+    if (!toggle) return;
+    /* Icône « expanded » visible = volet actuellement ouvert → on replie */
+    const expIcon = toggle.querySelector('.aside-toggle-expanded');
+    const isOpen = expIcon ? (expIcon.offsetParent !== null) : true;
+    if (isOpen) {
+      try { toggle.click(); } catch (e) {}
+    }
   }
 
   /* ── 6d. Mesurer largeur sidebar primary → var CSS ────────── */
@@ -738,6 +987,106 @@
     });
   }
 
+  /* ── 8. Suivi des DIT + autoreload (page entreeVisualiser) ──
+     Sur la page « Clients et Problèmes » du planning :
+     - recharge la page toutes les 60 s pour voir les nouvelles DIT ;
+     - compare le tableau aux DIT déjà vues (localStorage) ;
+     - notifie le navigateur pour chaque NOUVELLE DIT (Client + Problème). */
+  const DIT_URL_RX  = /ccPlanningV2\/entreeVisualiser\.action/i;
+  const DIT_SEEN_KEY = 'artis_dit_seen';
+  const DIT_RELOAD_MS = 60000;
+
+  function isDitPage() { return DIT_URL_RX.test(location.href); }
+
+  /* Trouve le tableau dont l'entête contient Client + Problème */
+  function findDitTable() {
+    const tables = document.querySelectorAll('table');
+    for (const t of tables) {
+      const head = (t.tHead ? t.tHead.innerText : t.innerText.slice(0, 300)).toLowerCase();
+      if (head.includes('client') && (head.includes('problème') || head.includes('probleme'))) return t;
+    }
+    return null;
+  }
+
+  /* Index colonnes Client / Problème depuis l'entête */
+  function ditColumns(table) {
+    const ths = table.querySelectorAll('thead th, thead td');
+    let client = -1, probleme = -1;
+    ths.forEach((th, i) => {
+      const txt = (th.innerText || '').trim().toLowerCase();
+      if (client < 0 && txt.startsWith('client')) client = i;
+      if (probleme < 0 && (txt.startsWith('problème') || txt.startsWith('probleme'))) probleme = i;
+    });
+    return { client, probleme };
+  }
+
+  function ditRows(table) {
+    const col = ditColumns(table);
+    const body = table.tBodies && table.tBodies[0] ? table.tBodies[0] : table;
+    const rows = body.querySelectorAll('tr');
+    const out = [];
+    rows.forEach(tr => {
+      const cells = tr.querySelectorAll('td');
+      if (!cells.length) return;
+      if (tr.querySelector('.dataTables_empty')) return;
+      const clean = s => (s || '').replace(/\s+/g, ' ').trim();
+      const client   = col.client   >= 0 && cells[col.client]   ? clean(cells[col.client].innerText)   : '';
+      const probleme = col.probleme >= 0 && cells[col.probleme] ? clean(cells[col.probleme].innerText) : '';
+      if (!client && !probleme) return;
+      out.push({ client, probleme, sig: (client + '||' + probleme).slice(0, 240) });
+    });
+    return out;
+  }
+
+  function loadSeen() {
+    try { const a = JSON.parse(localStorage.getItem(DIT_SEEN_KEY) || '[]'); return Array.isArray(a) ? a : []; }
+    catch (e) { return []; }
+  }
+  function saveSeen(arr) {
+    try { localStorage.setItem(DIT_SEEN_KEY, JSON.stringify(arr.slice(-200))); } catch (e) {}
+  }
+
+  function checkDit() {
+    const table = findDitTable();
+    if (!table) return;
+    const rows = ditRows(table);
+    if (!rows.length) return;
+
+    const seen = loadSeen();
+    const firstRun = seen.length === 0;
+    const seenSet = new Set(seen);
+    const fresh = rows.filter(r => !seenSet.has(r.sig));
+
+    /* Premier passage = baseline : on enregistre sans notifier (évite le spam initial) */
+    if (!firstRun) {
+      fresh.forEach(r => {
+        const body = (r.client ? r.client + ' — ' : '') + (r.probleme || 'Nouvelle DIT');
+        try {
+          chrome.runtime.sendMessage({
+            type: 'ARTIS_NOTIFY',
+            title: 'Nouvelle DIT — ' + (r.client || 'Client'),
+            body,
+            tag: 'dit',
+          });
+        } catch (e) {}
+      });
+    }
+    if (fresh.length || firstRun) saveSeen([...seen, ...fresh.map(r => r.sig)]);
+  }
+
+  function startDitMonitor() {
+    if (!isDitPage()) return;
+    /* Laisse le tableau se rendre (DataTables ajax) avant de comparer */
+    setTimeout(checkDit, 1500);
+    setTimeout(checkDit, 4000);
+    /* Autoreload toutes les 60 s — UNIQUEMENT si l'onglet n'est pas affiché
+       (inutile de recharger sous les yeux de l'utilisateur). */
+    setTimeout(function tryReload() {
+      if (document.hidden) location.reload();
+      else setTimeout(tryReload, DIT_RELOAD_MS);   // visible → on repousse
+    }, DIT_RELOAD_MS);
+  }
+
   /* ── Init ─────────────────────────────────────────────────── */
   function init() {
     createBackground();
@@ -755,14 +1104,54 @@
     injectThemeToggle();        /* injecte theme + version */
     runSidebarStagger();        /* anime TOUS les boutons d'un coup, raccord */
     setPrimaryWidth();
+    setTimeout(collapseAsideByDefault, 500);   /* replie le volet menu une fois Artis initialisé */
     injectLoader(document);
     observeDOM();
+    startDitMonitor();                    /* suivi DIT + autoreload (page entreeVisualiser) */
+    tagPlanningBlocks(document);          /* préfixe ✅/❌ sur les blocs déjà présents */
+    setTimeout(() => tagPlanningBlocks(document), 800);  /* re-pass si planning rendu tard */
     replaceFavicon();
+    /* Thème appliqué → révéler le contenu en fondu (anti-saccade reload) */
+    requestAnimationFrame(() => document.documentElement.classList.add('artis-ready'));
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  /* ── Master switch (slider popup) ─────────────────────────── */
+  function ourSheet(sheet) {
+    try { return !!sheet.href && (/app-override\.css$/.test(sheet.href) || /giles\.css$/.test(sheet.href)); }
+    catch (e) { return false; }
   }
+  function disableThemeSheets(off) {
+    for (const s of document.styleSheets) { if (ourSheet(s)) { try { s.disabled = off; } catch (e) {} } }
+  }
+
+  function boot() {
+    chrome.storage.local.get(['artis_enabled', 'artis_dark', 'artis_version_btn'], s => {
+      if (s && s.artis_enabled === false) {
+        disableThemeSheets(true);   // thème off : on neutralise notre CSS, init non lancé
+        return;
+      }
+      CFG.dark       = s.artis_dark !== false;        // défaut = sombre
+      CFG.versionBtn = s.artis_version_btn !== false; // défaut = visible
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    });
+  }
+
+  /* Bascule du slider → recharge pour appliquer/retirer proprement */
+  let _lastEnabled = null;
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    /* Mode sombre / bouton version : on recharge pour réappliquer proprement */
+    if ('artis_dark' in changes || 'artis_version_btn' in changes) { location.reload(); return; }
+    if (!('artis_enabled' in changes)) return;
+    const nv = changes.artis_enabled.newValue;
+    if (_lastEnabled !== null && nv !== _lastEnabled) location.reload();
+    _lastEnabled = nv;
+  });
+  chrome.storage.local.get('artis_enabled', s => { _lastEnabled = (s && s.artis_enabled) !== false; });
+
+  chrome.storage.local.get('artis_enabled', s => {
+    if ((s && s.artis_enabled) === false) return;
+    boot();
+  });
 })();

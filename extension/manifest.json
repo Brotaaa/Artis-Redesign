@@ -1,27 +1,32 @@
-{
+﻿{
   "manifest_version": 3,
   "name": "Artis Login Enhancer",
-  "version": "1.8.0",
-  "description": "Modernise login + interface interne Artis.net — dark glassmorphism + animations",
-  "permissions": [],
+  "version": "1.9.38",
+  "description": "Modernise login + interface interne Artis.net — dark glassmorphism + animations + assistant IA Gilles",
+  "permissions": ["storage", "tabs", "notifications"],
+  "host_permissions": ["https://generativelanguage.googleapis.com/*"],
+  "background": {
+    "service_worker": "giles-bg.js"
+  },
   "icons": {
-    "16": "justejohn.png",
-    "32": "justejohn.png",
-    "48": "justejohn.png",
-    "128": "justejohn.png"
+    "16": "icon-16.png",
+    "32": "icon-32.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
   },
   "action": {
+    "default_popup": "popup.html",
     "default_icon": {
-      "16": "justejohn.png",
-      "32": "justejohn.png",
-      "48": "justejohn.png",
-      "128": "justejohn.png"
+      "16": "icon-16.png",
+      "32": "icon-32.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
     },
     "default_title": "Artis Redesign"
   },
   "web_accessible_resources": [
     {
-      "resources": ["favicon.png", "justejohn.png"],
+      "resources": ["justejohn.png"],
       "matches": [
         "*://artis.digithall.org/*",
         "*://*.artis.fr/*",
@@ -51,8 +56,8 @@
         "*://*.artis.fr/*/composants/login/*",
         "*://*.artis.net/*/composants/login/*"
       ],
-      "js": ["app-content.js"],
-      "css": ["app-override.css"],
+      "js": ["app-content.js", "giles.js"],
+      "css": ["app-override.css", "giles.css"],
       "run_at": "document_end"
     }
   ]

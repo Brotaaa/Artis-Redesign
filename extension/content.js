@@ -73,9 +73,9 @@
 
       /* BG gradient */
       const g = ctx.createLinearGradient(0, 0, W * 0.4, H);
-      g.addColorStop(0,   '#060616');
-      g.addColorStop(0.45,'#0c0c24');
-      g.addColorStop(1,   '#09091e');
+      g.addColorStop(0,   '#16163a');
+      g.addColorStop(0.45,'#1d1d4a');
+      g.addColorStop(1,   '#191940');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, W, H);
 
@@ -280,6 +280,25 @@
     document.body.appendChild(img);
   }
 
+  /* ── 6c. Logo JusteJohn haut-gauche + centrage login ──────── */
+  function injectTopLeftLogo() {
+    if (!document.getElementById('artis-topleft-logo')) {
+      const img = document.createElement('img');
+      img.id = 'artis-topleft-logo';
+      img.src = chrome.runtime.getURL('justejohn.png');
+      img.alt = 'JusteJohn';
+      img.style.cssText = `
+        position:fixed;top:20px;left:22px;z-index:9999;
+        width:150px;height:auto;pointer-events:none;
+        filter:drop-shadow(0 2px 10px rgba(0,0,0,0.45));
+        opacity:0.95;animation:l-fade-up 0.9s ease 0.2s both;
+      `;
+      document.body.appendChild(img);
+    }
+    /* Centrage vertical+horizontal du bloc login */
+    document.body.style.cssText += 'display:flex;align-items:center;justify-content:center;min-height:100vh;';
+  }
+
   /* ── 7. Favicon ───────────────────────────────────────────── */
   function replaceFavicon() {
     const url = chrome.runtime.getURL('justejohn.png');
@@ -299,10 +318,36 @@
     staggerFormGroups();
     addPasswordToggle();
     styleSSO();
-    injectWatermark();
+    injectTopLeftLogo();
     replaceFavicon();
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  /* ── Master switch (slider popup) ─────────────────────────── */
+  function ourSheet(sheet) {
+    try { return !!sheet.href && /login-override\.css$/.test(sheet.href); }
+    catch (e) { return false; }
+  }
+  function disableThemeSheets(off) {
+    for (const s of document.styleSheets) { if (ourSheet(s)) { try { s.disabled = off; } catch (e) {} } }
+  }
+
+  function boot() {
+    chrome.storage.local.get('artis_enabled', s => {
+      if (s && s.artis_enabled === false) { disableThemeSheets(true); return; }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    });
+  }
+
+  let _lastEnabled = null;
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !('artis_enabled' in changes)) return;
+    const nv = changes.artis_enabled.newValue;
+    if (_lastEnabled !== null && nv !== _lastEnabled) location.reload();
+    _lastEnabled = nv;
+  });
+  chrome.storage.local.get('artis_enabled', s => {
+    _lastEnabled = (s && s.artis_enabled) !== false;
+    if (_lastEnabled) boot();
+  });
 })();

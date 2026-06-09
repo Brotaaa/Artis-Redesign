@@ -1,0 +1,16 @@
+# ERROR.md — Journal des erreurs à ne plus refaire
+
+But : noter chaque erreur signalée par l'utilisateur pour ne pas la répéter.
+**Claude DOIT lire ce fichier AVANT toute modification.**
+
+Format par entrée :
+- **Date** | **Contexte** | ce qui a foiré → **règle à appliquer**
+
+---
+
+## Entrées
+
+- **2026-06-09** | Tableaux DIT (DataTables `.table-striped`) | lignes impaires restaient BLANCHES malgré `background-color` dark → Bootstrap 5.3 peint les cellules striées via `box-shadow: inset ... var(--bs-table-bg-type)`. **Règle :** overrider `--bs-table-bg-type` / `--bs-table-accent-bg` sur les cellules (`tr > *`), pas seulement `background-color`.
+- **2026-06-09** | Gilles capture page | `document.body.cloneNode(true)` détaché ignore `display:none` → renvoyait le texte d'onglets cachés (« Aucune donnée ») au lieu de l'onglet visible. **Règle :** capturer `document.body.innerText` LIVE (respecte la visibilité), masquer temporairement `#giles-root`/`#artis-app-canvas` au lieu de cloner.
+- **2026-06-09** | Accordéon sous-menu `.menu-sub-accordion` | replié via `grid-template-rows:0fr` MAIS le conteneur a PLUSIEURS `.menu-item` enfants directs → une seule piste 0fr, le reste tombe en lignes implicites `auto` = pleine hauteur → gros trous. **Règle :** pour replier un conteneur à enfants multiples, utiliser `max-height:0; overflow:hidden` (pas le truc grid 0fr qui ne marche qu'avec UN enfant wrapper).
+- **2026-06-09** | Overlay chargement `.divChargement` | mis `display:flex !important` pour centrer le loader → Artis masque l'overlay via `display:none`, mon `!important` l'a écrasé → overlay permanent qui **bloque tout le site**. **Règle :** NE JAMAIS forcer `display` sur un élément qu'Artis affiche/masque dynamiquement (overlays, panels, dropdowns). Centrer le contenu autrement (`position:fixed; top/left:50%; transform`), laisser Artis garder le contrôle du `display`.

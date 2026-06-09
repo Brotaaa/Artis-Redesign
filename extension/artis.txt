@@ -1,0 +1,72 @@
+﻿BASE DE CONNAISSANCE ARTIS
+==========================
+
+(Ce fichier est la base de connaissance de Gilles. Remplace / complète librement
+ce contenu avec la documentation officielle d'Artis. Plus il est précis, plus
+Gilles répond bien. Source brute : datatxt/documentation.pdf.)
+
+---------------------------------------------------------------------------
+PRÉSENTATION
+---------------------------------------------------------------------------
+Artis.net est un ERP métier (progiciel de gestion) utilisé pour la gestion
+d'interventions, de planning de techniciens, de stocks et de workflow.
+Interface web (Bootstrap 5 + jQuery). On y accède via un navigateur, après
+connexion SSO (Bureau Mobile / typeLicence=BM).
+
+---------------------------------------------------------------------------
+NAVIGATION GÉNÉRALE
+---------------------------------------------------------------------------
+- Barre latérale gauche (icônes) : accès aux grands modules.
+    • Artis.net  : module principal (planning, services).
+    • Accès rapide / Utilisateur : profil, mon compte.
+    • Messagerie : discussions internes.
+    • Favoris    : raccourcis vers les écrans favoris.
+    • Wiki       : documentation interne.
+    • Sessions   : sessions ouvertes.
+- Volet déroulant (au survol d'une icône) : sous-menus du module, avec une
+  barre de recherche (raccourci Ctrl+K) en haut.
+- Menus types : « Services », « Biens et configurations », « Logistique et stocks ».
+- Barre de recherche globale : Ctrl+K pour chercher un écran ou une fonction.
+
+---------------------------------------------------------------------------
+PLANNING
+---------------------------------------------------------------------------
+- Le planning affiche l'emploi du temps des techniciens sous forme de grille
+  (lignes = techniciens / horaires, colonnes = jours).
+- Les interventions / RDV apparaissent sous forme de blocs colorés (« DIT »).
+  La couleur dépend de la nature / du type de l'intervention.
+- « Tâches à planifier » : interventions pas encore positionnées (avec ou sans
+  intervenant).
+- On peut filtrer la grille, faire un clic droit sur une plage pour ouvrir le
+  menu contextuel (planifier, déplacer, etc.).
+- Vues : planning détaillé, planning multi-critères.
+
+---------------------------------------------------------------------------
+FAVORIS
+---------------------------------------------------------------------------
+- L'onglet Favoris (étoile) liste les écrans mis en favori, regroupés par
+  catégorie (Biens et configurations, Logistique et stocks, Services...).
+- Cliquer sur une étoile depuis un écran l'ajoute / le retire des favoris.
+
+---------------------------------------------------------------------------
+PROFIL / MON COMPTE
+---------------------------------------------------------------------------
+- La carte profil (page d'accueil) affiche la photo, le nom et le service.
+- Boutons : Mon profil, Aide en ligne, Déconnexion.
+- « Image visible sur le portail client » : rend la photo visible côté client.
+
+---------------------------------------------------------------------------
+CONNEXION / DÉCONNEXION
+---------------------------------------------------------------------------
+- Connexion via SSO Bureau Mobile.
+- Message possible : « Ouverture impossible : le nombre d'accès simultanés pour
+  un poste est atteint » → une autre session est déjà ouverte pour ce poste /
+  cette licence ; fermer l'autre session puis réessayer.
+
+---------------------------------------------------------------------------
+À COMPLÉTER
+---------------------------------------------------------------------------
+Ajoute ici les procédures précises (création d'une intervention, gestion d'un
+stock, validation d'un workflow, etc.) issues de la documentation officielle.
+Si une information n'est pas dans ce fichier, Gilles répondra qu'il ne la
+connaît pas plutôt que d'inventer.

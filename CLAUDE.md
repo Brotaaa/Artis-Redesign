@@ -1,4 +1,8 @@
-# Artis Login Enhancer — CLAUDE.md
+﻿# Artis Login Enhancer — CLAUDE.md
+
+## 🛑 VÉRIFIER `error.md` AVANT TOUTE MODIF
+
+**RÈGLE PERMANENTE :** Avant chaque modification, lire `error.md` (racine projet) pour ne pas répéter une erreur déjà signalée. Quand l'utilisateur signale une erreur, l'ajouter à `error.md` immédiatement.
 
 ## ⚙️ MAINTENANCE AUTO DE CE FICHIER
 
@@ -62,6 +66,7 @@ L'utilisateur décrit les éléments en langage courant + donne souvent un **XPa
 | « bleu pas violet » | Bleu Artis `#00AEEF/#0084BD` à remplacer | `stripArtisBlueBg()` → violet `#6366f1` |
 | « carte profil » / « ma pp » / « bloc bleu avec photo » | Widget profil accueil | `#thumbnail.bg-blue` (`.bg-blue`=`#03a9f4`), avatar `.photo-content`, glow derrière via `.thumb.frozen-dreams-gradient` |
 | « bouton rond rose » (profil/aide/logout) | Actions carte profil | `#thumbnail .btn.bg-pink-400` → recoloré violet |
+| « sous-menu pour changer le nombre de jours » / « sélecteur de semaine » (en haut EDT) | Date range picker (popup calendrier + raccourcis) | `.daterangepicker` (`.ranges li`, `.drp-calendar`, `table.table-condensed td.in-range/.active`, `.drp-buttons`) — thémé dark |
 
 ### Notes comportement utilisateur
 - Donne souvent **XPath** au lieu de classe → utiliser pour localiser, mais cibler par **classe/id stable** dans le CSS (XPath `div[12]` = index fragile).
@@ -76,7 +81,7 @@ L'utilisateur décrit les éléments en langage courant + donne souvent un **XPa
 - Ces menus n'ont pas toujours `.dropdown-menu` → couvrir aussi `.popover`, `.tippy-box`, `.ui-menu`, `[role="listbox/menu"]`.
 
 ### Pièges connus
-- `.aside-secondary` doit **flotter** (`position:absolute`) sinon son ouverture **décale le tableau**.
+- `.aside-secondary` : **flottant** (`position:absolute`) sur accueil/favoris (sinon décale le tableau), MAIS **docké** (`position:relative`) sur la page planning (`html.artis-page-planning`) sinon le panel **dépasse derrière le contenu**. Deux comportements selon la page.
 - Tables vides → l'élément `<table>` doit avoir fond dark explicite (cellules transparentes laissent voir wrapper blanc).
 - Blocs planning : couleurs Artis = **données métier** (nature/type) → ne pas aplatir, juste harmoniser (saturation/glow/voile).
 - Metronic toggle les sous-menus via classes `.show/.here/.hover` → animer avec `grid-template-rows 0fr→1fr`.
@@ -376,11 +381,32 @@ Partout où Artis utilise son bleu (`#00AEEF`, `bg-artis-default-color`, `text-a
 
 | Fichier | Rôle |
 |---------|------|
-| `extension/manifest.json` | Manifest V3 — patterns URL |
-| `extension/content.js` | Login : canvas + animations + toggle password |
+| `extension/manifest.json` | Manifest V3 — URL, permissions storage, host Gemini, background, popup |
+| `extension/content.js` | Login : canvas + animations + toggle password + watermark + master switch |
 | `extension/login-override.css` | Login : glassmorphism dark |
-| `extension/app-content.js` | App : canvas + nuclear CSS + MutationObserver |
+| `extension/app-content.js` | App : canvas + nuclear CSS + observer + toggle theme/version + master switch |
 | `extension/app-override.css` | App : thème complet |
+| `extension/giles.js` | Gilles : UI pop-up IA (chat, mémoire 5, onglet Conversations) |
+| `extension/giles.css` | Gilles : styles (glass, light mode, responsive) |
+| `extension/giles-bg.js` | Service worker : appels Gemini, charge clé + base de connaissance |
+| `extension/prompts/giles-system-prompt.txt` | Préprompt système de Gilles |
+| `extension/artis.txt` + `ressources.md` | Base de connaissance (bundlée depuis `datatxt/`) |
+| `extension/apigemini.txt` | Clé API Gemini (gitignored, non web-accessible) |
+| `extension/popup.html/.css/.js` | Popup : sliders activer/désactiver + réglage clé |
+| `sync-knowledge.ps1` | Re-copie `datatxt/*` → `extension/` (maj connaissance) |
+
+### Gilles — assistant IA
+
+- **Modèle** : Gemini `gemini-2.0-flash`, appelé depuis le **service worker** (`giles-bg.js`) → évite CORS/CSP de la page.
+- **Clé API** : `chrome.storage.local['giles_api_key']` (popup) sinon parsée depuis `apigemini.txt`.
+- **Connaissance** : `artis.txt` + `ressources.md` concaténés dans `systemInstruction` avec le préprompt.
+- **Mémoire active** : 5 derniers messages ; vidée à chaque rechargement complet (sessionStorage).
+- **Conversations** : `localStorage['giles_conversations']` (PC uniquement). Onglet : voir / supprimer / tout vider.
+- **Slider on/off** : popup écrit `artis_enabled` / `giles_enabled` ; bascule thème = `location.reload()`.
+
+### ⚠️ Lecture disque
+
+Extension installée = **ne lit PAS un dossier disque arbitraire** (sandbox). Seuls les fichiers **bundlés dans `extension/`** sont lisibles (`getURL`+`fetch`). La doc Artis doit être copiée dans `extension/` via `sync-knowledge.ps1`. Lecture live d'un dossier choisi = File System Access API (non implémenté).
 
 ## URL ciblées
 

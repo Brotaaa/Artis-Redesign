@@ -1,22 +1,11 @@
-# Pages Artis sauvegardées localement (lourdes, privées)
-Artis.net - *.html
-Artis.net - *_files/
-*_files/
+# Secrets — NE JAMAIS committer la clé API
+extension/apigemini.txt
+**/apigemini.txt
 
-# Build
-artis-extension.zip
+# Backups caveman compress
+*.original.md
 
-# OS
+# OS / éditeurs
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# Editor
 .vscode/
-.idea/
-
-# Tooling local (skills Claude, caches)
-.claude/
-**/__pycache__/
-*.pyc
-*.zip

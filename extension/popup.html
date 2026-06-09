@@ -1,0 +1,89 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="pp-head">
+    <img src="justejohn.png" alt="" class="pp-logo">
+    <div>
+      <div class="pp-title">Artis Redesign</div>
+      <div class="pp-ver" id="pp-ver">v—</div>
+    </div>
+  </header>
+
+  <div class="pp-api" id="pp-api" title="État de l'API Gilles">
+    <span class="pp-dot" id="pp-api-dot"></span>
+    <span class="pp-api-txt" id="pp-api-txt">Vérification de l'API…</span>
+    <button class="pp-api-retry" id="pp-api-retry" hidden aria-label="Revérifier">↻</button>
+  </div>
+
+  <div class="pp-row">
+    <div class="pp-label">
+      <span class="pp-name">Thème activé</span>
+      <span class="pp-desc">Active / désactive tout le redesign</span>
+    </div>
+    <label class="pp-switch">
+      <input type="checkbox" id="pp-main" checked>
+      <span class="pp-slider"></span>
+    </label>
+  </div>
+
+  <div class="pp-row">
+    <div class="pp-label">
+      <span class="pp-name">Mode sombre</span>
+      <span class="pp-desc">Sombre activé / thème clair</span>
+    </div>
+    <label class="pp-switch">
+      <input type="checkbox" id="pp-dark" checked>
+      <span class="pp-slider"></span>
+    </label>
+  </div>
+
+  <div class="pp-row">
+    <div class="pp-label">
+      <span class="pp-name">Bouton version</span>
+      <span class="pp-desc">Affiche le bouton version dans la sidebar</span>
+    </div>
+    <label class="pp-switch">
+      <input type="checkbox" id="pp-version" checked>
+      <span class="pp-slider"></span>
+    </label>
+  </div>
+
+  <div class="pp-row">
+    <div class="pp-label">
+      <span class="pp-name">Assistant Gilles</span>
+      <span class="pp-desc">Pop-up IA en bas de page</span>
+    </div>
+    <label class="pp-switch">
+      <input type="checkbox" id="pp-giles" checked>
+      <span class="pp-slider"></span>
+    </label>
+  </div>
+
+  <div class="pp-row">
+    <div class="pp-label">
+      <span class="pp-name">Notifications</span>
+      <span class="pp-desc">Autorise les notifications du navigateur (futur)</span>
+    </div>
+    <label class="pp-switch">
+      <input type="checkbox" id="pp-notif">
+      <span class="pp-slider"></span>
+    </label>
+  </div>
+
+  <details class="pp-adv">
+    <summary>Clé API Gilles (Gemini)</summary>
+    <input type="password" id="pp-key" placeholder="Laisser vide = clé du fichier apigemini.txt" autocomplete="off">
+    <button id="pp-key-save">Enregistrer la clé</button>
+    <div class="pp-hint" id="pp-key-hint"></div>
+  </details>
+
+  <footer class="pp-foot">Les conversations restent en local sur ce PC.</footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
