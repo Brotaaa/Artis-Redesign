@@ -595,8 +595,11 @@
   }
 
   /* ── 6b1. Changelog + bouton version ──────────────────────── */
-  const ARTIS_VERSION = '1.9.46';
+  const ARTIS_VERSION = '1.9.47';
   const CHANGELOG = [
+    { v: '1.9.47', d: '2026-06-10', notes: [
+      'Pop-up « Ma page d\'accueil » : s\'ouvre sur toute la hauteur de l\'écran (plus tronqué à 75%)',
+    ]},
     { v: '1.9.46', d: '2026-06-10', notes: [
       'Volet menu : plus de bloc bleu moche au survol des liens (tooltips redondants supprimés + tooltip jQuery UI thémé dark)',
     ]},

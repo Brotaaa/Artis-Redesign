@@ -2972,6 +2972,34 @@ button:active,
 .tox .tox-collection__item-label,
 .tox .tox-collection__item-accessory { color: inherit !important; }
 
+/* ── Modal « Ma page d'accueil » (#my-home-page, widgets grid-stack) ──
+   La .modal-body.modal-max-height plafonnait à 75vh → pop-up tronqué.
+   On l'ouvre sur toute la hauteur de l'écran. */
+#my-home-page .modal-dialog {
+  width: 96vw !important;
+  max-width: 1600px !important;
+  height: calc(100vh - 24px) !important;
+  max-height: calc(100vh - 24px) !important;
+  margin: 12px auto !important;
+  display: flex !important;
+}
+#my-home-page .modal-content {
+  height: 100% !important;
+  max-height: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+#my-home-page .modal-body,
+#my-home-page .modal-body.modal-max-height {
+  max-height: none !important;
+  flex: 1 1 auto !important;
+  overflow: auto !important;
+}
+/* La grille de widgets profite de la hauteur dispo */
+#my-home-page #widget_container_modal {
+  min-height: 100% !important;
+}
+
 /* Zone éditable : focus visible propre (anneau indigo) */
 .editor-artis.editor-artis-inline {
   border: 1px solid rgba(99,102,241,0.35) !important;
