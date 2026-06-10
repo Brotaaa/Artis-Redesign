@@ -2899,8 +2899,13 @@ button:active,
    → barre solide dark glass, intégrée visuellement au bandeau.
    ══════════════════════════════════════════════════════════ */
 
-/* Conteneur flottant (ancré par TinyMCE au-dessus de l'éditeur) */
+/* Conteneur flottant (ancré par TinyMCE au-dessus de l'éditeur).
+   display forcé : TinyMCE masque la barre au blur (style inline display:none),
+   l'utilisateur la veut affichée EN PERMANENCE. Exception assumée à la règle
+   « ne pas forcer display » : barre décorative, ne bloque aucune interaction
+   (≠ overlay de chargement). Position gérée par placeToolbar() (JS). */
 .tox.tox-tinymce-inline {
+  display: flex !important;
   z-index: 2147483200 !important;
   border: none !important;
   background: transparent !important;

@@ -3,6 +3,10 @@
 > Journal des versions. Le code ne garde que `ARTIS_VERSION` (`app-content.js`) ;
 > toute nouvelle version = entrée ICI + bump `ARTIS_VERSION` + `manifest.json`.
 
+## 1.9.51 — 2026-06-10
+- Éditeur compte rendu : toolbar TinyMCE affichée EN PERMANENCE (plus seulement au focus) — rendu forcé au chargement + display maintenu
+- Bouton Reformuler toujours présent dans la barre dès le chargement de la page
+
 ## 1.9.50 — 2026-06-10
 - Bandeau sticky des pages intervention (titre + onglets Dit/Compte-rendu…) : fond dark opaque — n'était plus que transparent, le contenu apparaissait derrière le titre au scroll
 
