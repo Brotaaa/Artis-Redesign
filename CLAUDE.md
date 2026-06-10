@@ -67,6 +67,7 @@ L'utilisateur décrit les éléments en langage courant + donne souvent un **XPa
 | « carte profil » / « ma pp » / « bloc bleu avec photo » | Widget profil accueil | `#thumbnail.bg-blue` (`.bg-blue`=`#03a9f4`), avatar `.photo-content`, glow derrière via `.thumb.frozen-dreams-gradient` |
 | « bouton rond rose » (profil/aide/logout) | Actions carte profil | `#thumbnail .btn.bg-pink-400` → recoloré violet |
 | « sous-menu pour changer le nombre de jours » / « sélecteur de semaine » (en haut EDT) | Date range picker (popup calendrier + raccourcis) | `.daterangepicker` (`.ranges li`, `.drp-calendar`, `table.table-condensed td.in-range/.active`, `.drp-buttons`) — thémé dark |
+| « les 3 boutons » (login) | Rangée SSO / Entrer / À propos | `.row.form-actions` > `.col.btn-action-login` > `.btn-group` (`#b_sso`, `#b_Entrer`, `#aProposModalLoginLink`) — checkbox dans un `.col` séparé, rangée passée en wrap pleine largeur (v1.9.42) |
 
 ### Notes comportement utilisateur
 - Donne souvent **XPath** au lieu de classe → utiliser pour localiser, mais cibler par **classe/id stable** dans le CSS (XPath `div[12]` = index fragile).
