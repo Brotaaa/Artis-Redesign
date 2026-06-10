@@ -18,15 +18,32 @@
         }
       });
     }
-    document.querySelectorAll('*').forEach(strip);
+    /* Seuls les éléments AVEC attribut style peuvent matcher → pas de parcours '*' */
+    document.querySelectorAll('[style]').forEach(strip);
 
-    /* Watch dynamically added nodes */
-    new MutationObserver(muts => {
-      muts.forEach(m => {
-        m.addedNodes.forEach(n => { if (n.nodeType === 1) { strip(n); n.querySelectorAll('*').forEach(strip); }});
-        if (m.type === 'attributes') strip(m.target);
+    /* Mutations batchées par frame + disconnect pendant nos écritures
+       (même pattern que l'observer app — pas de strip synchrone). */
+    const OPTS = { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] };
+    let pending = new Set(), scheduled = false, mo;
+    function flush() {
+      scheduled = false;
+      const els = pending; pending = new Set();
+      mo.disconnect();
+      els.forEach(el => {
+        if (!el.isConnected) return;
+        strip(el);
+        if (el.querySelectorAll) el.querySelectorAll('[style]').forEach(strip);
       });
-    }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
+      mo.observe(document.body, OPTS);
+    }
+    mo = new MutationObserver(muts => {
+      for (const m of muts) {
+        m.addedNodes.forEach(n => { if (n.nodeType === 1) pending.add(n); });
+        if (m.type === 'attributes') pending.add(m.target);
+      }
+      if (pending.size && !scheduled) { scheduled = true; requestAnimationFrame(flush); }
+    });
+    mo.observe(document.body, OPTS);
   }
 
   /* ── 1. Canvas background ─────────────────────────────────── */
@@ -316,7 +333,7 @@
 
   /* ── 7. Favicon ───────────────────────────────────────────── */
   function replaceFavicon() {
-    const url = chrome.runtime.getURL('justejohn.png');
+    const url = chrome.runtime.getURL('icon-32.png');   /* 1,6 Ko vs justejohn.png 165 Ko */
     document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
     const l = document.createElement('link');
     l.rel = 'icon'; l.type = 'image/png'; l.href = url;

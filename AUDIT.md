@@ -3,6 +3,16 @@
 Date : 2026-06-10 · Version auditée : **1.9.47** · Périmètre : `extension/` complet
 Légende : 🔴 fort impact · 🟠 moyen · 🟡 faible · 🟢 OK
 
+> **STATUT 2026-06-10 (v1.9.48) — corrections appliquées :**
+> - ✅ A1 : strips → `querySelectorAll('[style]')` (app `initialSweep`/`stripAllInline` + login `nukeWhiteBg`)
+> - ✅ A2 : CHANGELOG déplacé vers `CHANGELOG.md`, le JS ne garde que `ARTIS_VERSION`
+> - ✅ A3 : contexte pages → Gilles en **delta** (cache par onglet dans le SW, `GILES_PAGES_STATE` + `pagesDelta`) ; note : les tokens envoyés à Gemini restent identiques (API stateless), le gain porte sur la sérialisation/messaging par message
+> - ✅ A4 : Reformuler monté au `focusin` de l'éditeur (re-essais bornés ×20), plus d'observer body permanent
+> - ❌ A5 : **abandonné** — le tableau DIT est rempli par DataTables en **ajax**, un `fetch`+`DOMParser` du HTML renverrait une table vide. Le reload (onglet caché uniquement) reste la solution fiable.
+> - ✅ A6 : favicon → `icon-32.png` (ajouté aux `web_accessible_resources`)
+> - ✅ A8 : observer login batché par frame + disconnect pendant écritures (pattern app)
+> - A7 : règles de non-aggravation CSS actées dans CLAUDE.md (rien à corriger ponctuellement)
+
 > Cet audit remplace celui du 2026-06-09 (v1.9.21/1.9.22). Tous les points 🔴 de
 > l'audit précédent ont été corrigés en v1.9.43 (canvas pré-rendu + pause onglet caché,
 > observer batché, capture mémoïsée, balayage init unique, artis.txt caché, token de

@@ -383,32 +383,41 @@
     /* Mémoire envoyée = 5 derniers messages utiles */
     const history = activeMessages.slice(-MEM_LIMIT).map(m => ({ role: m.role, text: m.text }));
 
-    /* Rafraîchit la page courante puis envoie TOUTES les pages mémorisées
-       (Planning + autres) pour que Gilles s'en souvienne entre les pages.
-       Désactivable dans la popup (rien de la page ne part vers Gemini). */
-    let pages = [];
+    const send = extra => {
+      chrome.runtime.sendMessage(Object.assign({ type: 'GILES_ASK', history }, extra), resp => {
+        hideLoader();
+        busy = false;
+        elSend.disabled = false;
+
+        if (chrome.runtime.lastError) {
+          addBubble('assistant', errMessage('EXT', chrome.runtime.lastError.message));
+        } else if (!resp) {
+          addBubble('assistant', errMessage('NO_RESP'));
+        } else if (!resp.ok) {
+          addBubble('assistant', errMessage(resp.error || 'UNKNOWN', resp.detail));
+        } else {
+          addBubble('assistant', resp.text);
+          notifyIfAway('Gilles a répondu', resp.text);
+        }
+        persistCurrent();
+      });
+    };
+
+    /* Contexte pages envoyé en DELTA : le service worker met en cache les pages
+       déjà transmises (par onglet) ; on ne fait transiter que les nouvelles /
+       modifiées. Désactivable dans la popup (rien ne part vers Gemini). */
     if (pageShare) {
       storeCurrentPage();
-      pages = getStoredPages();
+      const all = getStoredPages();
+      chrome.runtime.sendMessage({ type: 'GILES_PAGES_STATE' }, st => {
+        void chrome.runtime.lastError;   // SW redémarré → cache vide, on renvoie tout
+        const have = (st && st.have) || {};
+        const delta = all.filter(p => (have[p.url] || 0) < (p.time || 0));
+        send({ pages: delta, pagesDelta: true, pageUrls: all.map(p => p.url) });
+      });
+    } else {
+      send({ pages: [] });
     }
-
-    chrome.runtime.sendMessage({ type: 'GILES_ASK', history, pages }, resp => {
-      hideLoader();
-      busy = false;
-      elSend.disabled = false;
-
-      if (chrome.runtime.lastError) {
-        addBubble('assistant', errMessage('EXT', chrome.runtime.lastError.message));
-      } else if (!resp) {
-        addBubble('assistant', errMessage('NO_RESP'));
-      } else if (!resp.ok) {
-        addBubble('assistant', errMessage(resp.error || 'UNKNOWN', resp.detail));
-      } else {
-        addBubble('assistant', resp.text);
-        notifyIfAway('Gilles a répondu', resp.text);
-      }
-      persistCurrent();
-    });
   }
 
   /* ── Onglet Conversations ───────────────────────────────── */

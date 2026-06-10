@@ -26,7 +26,7 @@ Dès qu'un nouvel élément est traité, tenir ce CLAUDE.md à jour automatiquem
 - **Nouvelle classe/sélecteur clé** découverte (ex: `#thumbnail`, `.bg-blue`) → lexique + pièges.
 - **Nouveau piège/comportement** → section « Pièges connus ».
 - Convertir dates relatives en absolues. Pas de doublons : mettre à jour la ligne existante plutôt que dupliquer.
-- **À chaque patch/modif visuelle** : incrémenter `ARTIS_VERSION` + `manifest.json version` (synchros) ET ajouter une entrée en tête de `CHANGELOG` dans `app-content.js`. (Le bouton Version sidebar `#artis-version-btn` ouvre le repo GitHub depuis v1.9.15 ; AUDIT.md A2 propose de déplacer ce journal vers un `CHANGELOG.md` — si fait, mettre cette règle à jour.)
+- **À chaque patch/modif visuelle** : incrémenter `ARTIS_VERSION` (`app-content.js`) + `manifest.json version` (synchros) ET ajouter une entrée en tête de **`CHANGELOG.md`** (racine repo — le journal n'est plus dans le JS depuis v1.9.48). Le bouton Version sidebar `#artis-version-btn` ouvre le repo GitHub.
 
 ---
 

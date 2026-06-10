@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    Artis App Enhancer — Content Script (interface interne)
    ============================================================ */
 
@@ -382,7 +382,8 @@
     stripArtisBlueBg(el);
   }
   function stripAllInline(root) {
-    const all = root.querySelectorAll('*');
+    /* Seuls les éléments AVEC attribut style peuvent matcher → pas de parcours '*' */
+    const all = root.querySelectorAll('[style]');
     for (const el of all) stripInline(el);
   }
 
@@ -594,258 +595,8 @@
     if (CFG.versionBtn) injectVersionButton(wrapper);
   }
 
-  /* ── 6b1. Changelog + bouton version ──────────────────────── */
-  const ARTIS_VERSION = '1.9.47';
-  const CHANGELOG = [
-    { v: '1.9.47', d: '2026-06-10', notes: [
-      'Pop-up « Ma page d\'accueil » : s\'ouvre sur toute la hauteur de l\'écran (plus tronqué à 75%)',
-    ]},
-    { v: '1.9.46', d: '2026-06-10', notes: [
-      'Volet menu : plus de bloc bleu moche au survol des liens (tooltips redondants supprimés + tooltip jQuery UI thémé dark)',
-    ]},
-    { v: '1.9.45', d: '2026-06-10', notes: [
-      'Reformuler : lit le bloc détail DIT (client, site, demandeur, dates, détail demande) → Gilles comprend la demande initiale et explicite les étapes logiques raccord',
-      'Bouton Reformuler déplacé DANS la barre d\'outils du compte rendu (à côté des boutons police/gras)',
-    ]},
-    { v: '1.9.44', d: '2026-06-10', notes: [
-      'Éditeur compte rendu : barre d\'outils TinyMCE (gras/italique…) en barre solide dark intégrée au bandeau — plus de boutons transparents par-dessus le titre',
-      'Menus TinyMCE (listes, « … ») thémés dark + focus indigo sur la zone d\'édition',
-    ]},
-    { v: '1.9.43', d: '2026-06-10', notes: [
-      'Perf : canvas pré-rendu (grille/orbes statiques), pause onglet caché, 30 fps, connexions par buckets',
-      'Perf : MutationObserver batché par frame + déconnexion pendant nos écritures (fin des boucles)',
-      'Perf : balayage initial du DOM en un seul parcours ; capture page Gilles mémoïsée',
-      'Perf : artis.txt caché côté service worker, budget connaissance 80k → 50k chars, blur réduits',
-      'Sécu : token de session jamais envoyé à Gemini (URLs nettoyées), clé API en header (plus en URL)',
-      'Sécu : permission « tabs » retirée, extension limitée à artis.digithall.org',
-      'Sécu : polices bundlées en local (plus de requête Google Fonts), conversations purgées après 30 j',
-      'Popup : nouveau réglage « Partage pages → Gilles » (désactive l\'envoi du contenu des pages)',
-      'Nettoyage : code mort supprimé (showChangelog, injectWatermark)',
-    ]},
-    { v: '1.9.42', d: '2026-06-10', notes: [
-      'Login : boutons SSO / Entrer / i sur leur propre ligne pleine largeur — texte plus jamais coupé (« Entre »)',
-      'Login : case « Rester connecté » centrée au-dessus des boutons',
-    ]},
-    { v: '1.9.41', d: '2026-06-09', notes: [
-      'Volet menu : vrai déroulé glissé de gauche à droite (sort de derrière la sidebar) au lieu de « popper »',
-    ]},
-    { v: '1.9.40', d: '2026-06-09', notes: [
-      'Toolbar haut-droite : retour des rectangles arrondis clairs sur les boutons (fond plus visible)',
-    ]},
-    { v: '1.9.39', d: '2026-06-09', notes: [
-      'Menu de gauche : se déroule au SURVOL de la zone (animation lente et organique), plus besoin de cliquer',
-      'Menu de gauche : bouton flèche de déroulement retiré',
-    ]},
-    { v: '1.9.38', d: '2026-06-09', notes: [
-      'Volet menu : VRAI correctif des trous — sous-menus repliés via max-height (le grid 0fr ne marchait pas avec plusieurs enfants)',
-    ]},
-    { v: '1.9.37', d: '2026-06-09', notes: [
-      'Volet menu : items collés à la queue leu leu (sous-menus repliés ne laissent plus de gros trous)',
-      'Volet menu : replié par défaut au chargement — se déplie via le bouton flèche natif (#kt_aside_toggle)',
-    ]},
-    { v: '1.9.36', d: '2026-06-09', notes: [
-      'Chargement : suppression du carré noir résiduel derrière le loader (fond/boîte d\'origine masqués)',
-    ]},
-    { v: '1.9.35', d: '2026-06-09', notes: [
-      'Gilles : clic en dehors du pop-up → il se réduit automatiquement',
-    ]},
-    { v: '1.9.34', d: '2026-06-09', notes: [
-      'Gilles : champ de saisie centré + effet dégradé/glow assorti au bouton flèche, hauteurs réalignées',
-    ]},
-    { v: '1.9.33', d: '2026-06-09', notes: [
-      'Toolbar haut-droite : textes « Insérer DIT / action » + flèches + croix en BLANC (comme les icônes)',
-      'Bouton Gilles : nouveau logo (bulle de chat IA) plus clair',
-    ]},
-    { v: '1.9.32', d: '2026-06-09', notes: [
-      'Popups de confirmation (SweetAlert) centrés au milieu de l\'écran au lieu d\'en haut',
-    ]},
-    { v: '1.9.31', d: '2026-06-09', notes: [
-      'Loader chargement : fin du doublon (injectait 2 loaders quand .chgtContent contenait .box-rotate-loader) + logo Artis résiduel masqué',
-    ]},
-    { v: '1.9.30', d: '2026-06-09', notes: [
-      'CORRECTIF : l\'overlay de chargement ne bloque plus le site (ne forçait plus display → restait permanent)',
-      'Loader chargement : centré dans l\'écran (position fixe) au lieu de forcer le display de l\'overlay',
-      'Chargement : bouton « Annuler la recherche » retiré',
-    ]},
-    { v: '1.9.29', d: '2026-06-09', notes: [
-      'Login : texte des boutons SSO / Entrer / i réduit (tient mieux)',
-    ]},
-    { v: '1.9.28', d: '2026-06-09', notes: [
-      'Login : boutons SSO / Entrer / i côte à côte, case « Rester connecté » centrée au-dessus',
-      'Login : case à cocher arrondie + coche violette',
-    ]},
-    { v: '1.9.27', d: '2026-06-09', notes: [
-      'Login : boutons SSO / Entrer / i ne débordent plus de la carte (largeur auto, rangée flex)',
-      'Login : logo artis.net agrandi (220px)',
-      'Chargement entre pages : overlay plein écran quasi-opaque (masque le contenu) + loader centré, plus gros et plus lumineux, fade propre',
-      'Toolbar haut-droite : boutons et libellés éclaircis (Insérer DIT/action, date, engrenage, flèches) — texte plus lisible',
-    ]},
-    { v: '1.9.26', d: '2026-06-09', notes: [
-      'Tableaux DIT : fin des lignes blanches illisibles (override de --bs-table-bg-type, pas juste background-color)',
-      'Gilles : lit le texte LIVE de la page (onglet visible) au lieu d\'un clone détaché → ne dit plus « aucune donnée » alors que le tableau est rempli',
-    ]},
-    { v: '1.9.25', d: '2026-06-09', notes: [
-      'Menu utilisateur (clic sur la photo) : texte des liens rendu lisible (Mon profil, Aide, Déconnexion…)',
-    ]},
-    { v: '1.9.24', d: '2026-06-09', notes: [
-      'Login : espacement entre les boutons SSO / Entrer / i (plus collés)',
-    ]},
-    { v: '1.9.23', d: '2026-06-09', notes: [
-      'Gilles : réponses rendues en Markdown (gras, italique, souligné, listes, titres, code) — noms de clients en gras, dates soulignées',
-      'Autoreload entreeVisualiser : seulement quand l\'onglet n\'est pas affiché (pas de reload sous tes yeux)',
-    ]},
-    { v: '1.9.22', d: '2026-06-09', notes: [
-      'Notifications : Gilles prévient quand il répond et que tu n\'es pas sur la page',
-      'Notifications : nouvelles DIT du tableau Clients/Problèmes (page entreeVisualiser) → notif Client + Problème',
-      'Page entreeVisualiser : autoreload toutes les 60 s pour détecter les nouvelles DIT',
-      'Gilles : si aucune clé API configurée → message « Configurez votre clé API dans l\'extension ! »',
-    ]},
-    { v: '1.9.21', d: '2026-06-09', notes: [
-      'Renommage : « Giles » → « Gilles » partout',
-      'Gilles : pop-up retravaillée — onglets en segmented control discret, bulles plus aérées',
-      'Gilles : bandeau de connexion (chargement / hors-ligne) + bouton Réessayer, saisie bloquée si indisponible',
-    ]},
-    { v: '1.9.20', d: '2026-06-09', notes: [
-      'Popup : nouveau réglage « Notifications » (décoché par défaut) — demande l\'autorisation au navigateur pour recevoir des notifs futures',
-    ]},
-    { v: '1.9.19', d: '2026-06-09', notes: [
-      'Gilles : mémoire locale des pages visitées (sessionStorage) — visite le Planning puis une autre page et demande ce qu\'il y avait',
-      'Gilles : si l\'info manque, demande de visiter la page ; précise l\'heure de dernière récupération des données',
-      'Données rafraîchies à chaque chargement de page',
-    ]},
-    { v: '1.9.18', d: '2026-06-09', notes: [
-      'Sidebar : animation d\'entrée encore ralentie (1.3s + stagger 0.22s)',
-      'Gilles : lit le texte de la page affichée (DOM entier, hors-écran inclus) comme contexte',
-    ]},
-    { v: '1.9.17', d: '2026-06-09', notes: [
-      'Boutons breadcrumb (Précédent/Suivant/Fermer) : icônes noires → violet clair + hover glow',
-    ]},
-    { v: '1.9.16', d: '2026-06-09', notes: [
-      'Login : watermark JusteJohn bas-droite retiré',
-      'Login : fond éclairci (canvas + surfaces)',
-    ]},
-    { v: '1.9.15', d: '2026-06-09', notes: [
-      'Login : logo JusteJohn en haut à gauche + bloc connexion centré',
-      'Sidebar : animation d\'entrée ralentie (plus douce)',
-      'Reload : fade-in du contenu (fin des saccades au rechargement)',
-      'Bouton version → logo GitHub : ouvre le repo dans un nouvel onglet',
-      'Effet brillance (glow) au survol garanti sur tous les boutons toolbar',
-      'Icônes injectées (theme/version/Gilles) à la même taille que les natives (30px)',
-    ]},
-    { v: '1.9.14', d: '2026-06-09', notes: [
-      'Planning : panel menu docké remis en flux (ne dépasse plus derrière le contenu)',
-    ]},
-    { v: '1.9.13', d: '2026-06-09', notes: [
-      'Gilles : bouton flottant (FAB) retiré — ouverture uniquement via le bouton sidebar',
-    ]},
-    { v: '1.9.12', d: '2026-06-09', notes: [
-      'Gilles connaît toute la doc Artis (93 fichiers) via récupération ciblée par question',
-      'Correction encodage (BOM/accents) de la base de connaissance',
-    ]},
-    { v: '1.9.11', d: '2026-06-09', notes: [
-      'Plus de lift/zoom parasite au survol du gros bloc de fond de l\'EDT/planning',
-    ]},
-    { v: '1.9.10', d: '2026-06-09', notes: [
-      'Sélecteur de semaine/période (daterangepicker) : thème dark complet (calendrier, raccourcis, boutons)',
-    ]},
-    { v: '1.9.9', d: '2026-06-09', notes: [
-      'Gilles : modèles par défaut = gemini-2.5-flash-lite/2.5-flash (2.0 = quota 0 sur la clé)',
-      'Correction : retrait de gemini-1.5-flash (inexistant pour la clé)',
-      'Fallback aussi sur surcharge (503 "high demand"), plus seulement quota',
-    ]},
-    { v: '1.9.8', d: '2026-06-09', notes: [
-      'Gilles : pop-up déplacée en bas à gauche',
-    ]},
-    { v: '1.9.7', d: '2026-06-09', notes: [
-      'Gilles : fallback multi-modèles Gemini + code QUOTA dédié (quota dépassé)',
-      'Ping API léger (liste modèles) → ne consomme plus de quota à chaque ouverture',
-      'Pastille état API verte/rouge dans le header de Gilles',
-    ]},
-    { v: '1.9.6', d: '2026-06-09', notes: [
-      'Icônes sidebar agrandies : theme 80px, version 66px, Gilles 64px',
-    ]},
-    { v: '1.9.5', d: '2026-06-09', notes: [
-      'Popup : pastille état API (vert = connectée, rouge = vérifier API + code)',
-    ]},
-    { v: '1.9.4', d: '2026-06-09', notes: [
-      'Gilles : logo IA (robot), bouton dans la sidebar (vert) en plus de la bulle',
-      'Gilles : codes d\'erreur détaillés dans le chat (NO_KEY, API, NETWORK…)',
-      'Planning : ✅/❌ réservé aux interventions ; temps non productif (réservation…) sans emoji rouge',
-      'Popup extension : interrupteurs séparés Mode sombre + Bouton version',
-    ]},
-    { v: '1.9.3', d: '2026-06-09', notes: [
-      'Blocs réunion (rendez-vous agenda) : préfixe ⏳ dans le titre, prioritaire sur ✅/❌',
-    ]},
-    { v: '1.9.2', d: '2026-06-09', notes: [
-      'Icône extension : skull JusteJohn sur fond dark arrondi (16/32/48/128), visible en barre claire',
-    ]},
-    { v: '1.9.1', d: '2026-06-09', notes: [
-      'Blocs planning : préfixe d\'état dans le titre (✅ crité/grisé, ❌ non crité)',
-      'Mise à jour automatique de l\'emoji si l\'état du bloc change',
-    ]},
-    { v: '1.9.0', d: '2026-06-09', notes: [
-      'Assistant IA Gilles (pop-up bas de page, Gemini, base artis.txt)',
-      'Mémoire 5 messages + onglet Conversations (stockage local uniquement)',
-      'Slider activer/désactiver dans la popup de l\'extension',
-    ]},
-    { v: '1.8.0', d: '2026-06-09', notes: [
-      'Barre de recherche masquée sur les pages planning',
-      'Pictos theme/version encore agrandis',
-      'Publication GitHub + README',
-    ]},
-    { v: '1.7.5', d: '2026-06-09', notes: [
-      'Zoom DIT au survol ralenti (0.42s) pour un effet plus doux',
-    ]},
-    { v: '1.7.4', d: '2026-06-09', notes: [
-      'Hover favoris + checklist plus fluide (slide, glow, étoile pulse)',
-      'Carte profil agrandie (plus de scrollbar)',
-      'Pictos theme/version agrandis',
-    ]},
-    { v: '1.7.3', d: '2026-06-09', notes: [
-      'Entrée sidebar : stagger piloté en JS (1 seule timeline) → boutons theme/version parfaitement raccord avec les natifs',
-    ]},
-    { v: '1.7.2', d: '2026-06-09', notes: [
-      'Boutons theme/version : plus de pop en retard (animation d\'entrée retirée)',
-    ]},
-    { v: '1.7.1', d: '2026-06-09', notes: [
-      'Lignes planning : striping permanent (différence de couleur toujours visible)',
-    ]},
-    { v: '1.7.0', d: '2026-06-09', notes: [
-      'Zoom DIT planning passe au-dessus de tout (z-index + overflow)',
-      'Description DIT apparaît après 500ms au survol',
-      'Icône lune/soleil agrandie (46px)',
-    ]},
-    { v: '1.6.0', d: '2026-06-09', notes: [
-      'Bouton Version + changelog ajouté',
-      'Logo JusteJohn login agrandi (x2)',
-      'Tooltips passent au-dessus du volet favoris',
-    ]},
-    { v: '1.5.0', d: '2026-06-09', notes: [
-      'Carte profil #thumbnail re-thémée (fin du bleu #03a9f4) + glow derrière la PP',
-      'Surbrillance blanche des boutons sidebar réduite (violet)',
-      'Menus flottants body-level : texte forcé clair',
-    ]},
-    { v: '1.4.0', d: '2026-06-09', notes: [
-      'Volet favoris : flyout flottant (ne décale plus le tableau)',
-      'Blocs planning harmonisés + hover mini-zoom',
-      'Loader chargement custom (double anneau + noyau pulsant)',
-    ]},
-    { v: '1.3.0', d: '2026-06-09', notes: [
-      'Thème clair violet/slate propre (toggle lune/soleil)',
-      'Animation fluide déroulé menu + barre recherche',
-      'Stagger entrée des icônes sidebar',
-    ]},
-    { v: '1.2.0', d: '2026-06-09', notes: [
-      'Tableaux : élimination totale du blanc (même vides)',
-      'Bleu Artis → violet partout',
-      'Favicon personnalisée',
-    ]},
-    { v: '1.1.0', d: '2026-06-09', notes: [
-      'Thème dark glassmorphism interface interne',
-      'Page login retravaillée + canvas animé',
-    ]},
-  ];
-
+  /* ── 6b1. Bouton version — journal des versions : CHANGELOG.md (racine repo) ── */
+  const ARTIS_VERSION = '1.9.48';
   const GITHUB_REPO = 'https://github.com/SimplementJohn/Artis-Redesign';
   const VERSION_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.39 1.24-3.23-.12-.31-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.18.77.84 1.24 1.91 1.24 3.23 0 4.63-2.81 5.65-5.49 5.95.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.82.58A12.01 12.01 0 0024 12.5C24 5.87 18.63.5 12 .5z"/></svg>`;
 
@@ -1001,7 +752,7 @@
 
   /* ── 7. Favicon replacement ───────────────────────────────── */
   function replaceFavicon() {
-    const faviconUrl = chrome.runtime.getURL('justejohn.png');
+    const faviconUrl = chrome.runtime.getURL('icon-32.png');   /* 1,6 Ko vs justejohn.png 165 Ko */
     document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
     const link = document.createElement('link');
     link.rel = 'icon';
@@ -1027,25 +778,18 @@
     });
   }
 
-  /* ── 7. Balayage initial : UN SEUL parcours du DOM ─────────
-     Fusionne blanc + bleu Artis + boutons + wrappers de form
-     (avant : 4-5 querySelectorAll('*') consécutifs). */
-  function isButtonish(el) {
-    const tag = el.tagName;
-    if (tag === 'BUTTON') return true;
-    if (tag === 'INPUT' && (el.type === 'button' || el.type === 'submit')) return true;
-    return el.classList.contains('btn') || el.getAttribute('role') === 'button';
-  }
+  /* ── 7. Balayage initial : seuls les éléments avec STYLE INLINE
+     nous intéressent (strips + boutons) → querySelectorAll('[style]')
+     au lieu de '*' (10-100× moins d'éléments sur une page planning). */
   function initialSweep() {
-    const all = document.body.querySelectorAll('*');
-    for (const el of all) {
-      if (isButtonish(el)) {
-        /* Remove ALL inline background overrides on buttons */
-        el.style.removeProperty('background');
-        el.style.removeProperty('background-color');
-      }
-      stripInline(el);
-    }
+    document.body.querySelectorAll(
+      'button[style], input[type="button"][style], input[type="submit"][style], .btn[style], [role="button"][style]'
+    ).forEach(el => {
+      /* Remove ALL inline background overrides on buttons */
+      el.style.removeProperty('background');
+      el.style.removeProperty('background-color');
+    });
+    for (const el of document.body.querySelectorAll('[style]')) stripInline(el);
     stripNotificationsTable();
   }
 
@@ -1356,9 +1100,16 @@ ou DEMANDE PARTIELLEMENT RÉSOLUE : préciser`;
       return true;
     }
 
+    /* La toolbar est créée par TinyMCE au 1er focus de l'éditeur → on monte
+       à ce moment-là (plus d'observer permanent sur tout le body). Quelques
+       re-essais bornés car TinyMCE rend la barre de façon asynchrone. */
     if (!mountInToolbar()) {
-      const mo = new MutationObserver(() => { if (mountInToolbar()) mo.disconnect(); });
-      mo.observe(document.body, { childList: true, subtree: true });
+      editor.addEventListener('focusin', () => {
+        let tries = 0;
+        (function tryMount() {
+          if (!mountInToolbar() && ++tries < 20) setTimeout(tryMount, 150);
+        })();
+      }, { once: true });
     }
   }
 

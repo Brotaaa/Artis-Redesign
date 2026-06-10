@@ -291,12 +291,36 @@ chrome.notifications.onClicked.addListener(id => {
   });
 });
 
+/* ── Cache des pages déjà transmises, par onglet ──────────────
+   Le content script n'envoie que le DELTA (pages nouvelles/modifiées) ;
+   on fusionne ici avec ce qu'on a déjà. SW redémarré → cache vide →
+   le client renvoie tout (il interroge GILES_PAGES_STATE avant). */
+const _pageStore = {};   // tabId -> { url: {url,title,text,time} }
+
+function mergePages(tabId, delta, urls) {
+  const store = _pageStore[tabId] || (_pageStore[tabId] = {});
+  (delta || []).forEach(p => { if (p && p.url) store[p.url] = p; });
+  /* Pages évincées côté client (budget) → on les retire aussi ici */
+  if (Array.isArray(urls)) {
+    for (const u of Object.keys(store)) if (!urls.includes(u)) delete store[u];
+  }
+  return Object.values(store).sort((a, b) => (b.time || 0) - (a.time || 0));
+}
+
+function pagesForMessage(msg, sender) {
+  if (!msg.pagesDelta) return msg.pages;
+  const tabId = sender && sender.tab && sender.tab.id != null ? sender.tab.id : -1;
+  return mergePages(tabId, msg.pages, msg.pageUrls);
+}
+
+chrome.tabs.onRemoved.addListener(tabId => { delete _pageStore[tabId]; });
+
 /* Port long-lived pour GILLES_ASK (évite le bug MV3 "message port closed") */
 chrome.runtime.onConnect.addListener(port => {
   if (port.name !== 'gilles-ask') return;
   port.onMessage.addListener(msg => {
     if (!msg || msg.type !== 'GILLES_ASK') return;
-    askGemini(msg.history, msg.pages, msg.systemOverride || null).then(resp => {
+    askGemini(msg.history, pagesForMessage(msg, port.sender), msg.systemOverride || null).then(resp => {
       try { port.postMessage(resp); } catch (e) {}
     });
   });
@@ -305,7 +329,15 @@ chrome.runtime.onConnect.addListener(port => {
 /* Routeur de messages (sendMessage court-terme) */
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg) return false;
-  if (msg.type === 'GILES_ASK')   { askGemini(msg.history, msg.pages).then(sendResponse); return true; }
+  if (msg.type === 'GILES_ASK')   { askGemini(msg.history, pagesForMessage(msg, sender)).then(sendResponse); return true; }
+  if (msg.type === 'GILES_PAGES_STATE') {
+    const tabId = sender && sender.tab && sender.tab.id != null ? sender.tab.id : -1;
+    const store = _pageStore[tabId] || {};
+    const have = {};
+    for (const u of Object.keys(store)) have[u] = store[u].time || 0;
+    sendResponse({ ok: true, have });
+    return false;
+  }
   if (msg.type === 'GILES_PING')  { pingGemini().then(sendResponse);            return true; }
   if (msg.type === 'ARTIS_NOTIFY'){ notify(msg.title, msg.body, msg.tag).then(sendResponse); return true; }
   return false;
