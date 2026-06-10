@@ -538,8 +538,12 @@
   }
 
   /* ── 6b1. Changelog + bouton version ──────────────────────── */
-  const ARTIS_VERSION = '1.9.41';
+  const ARTIS_VERSION = '1.9.42';
   const CHANGELOG = [
+    { v: '1.9.42', d: '2026-06-10', notes: [
+      'Login : boutons SSO / Entrer / i sur leur propre ligne pleine largeur — texte plus jamais coupé (« Entre »)',
+      'Login : case « Rester connecté » centrée au-dessus des boutons',
+    ]},
     { v: '1.9.41', d: '2026-06-09', notes: [
       'Volet menu : vrai déroulé glissé de gauche à droite (sort de derrière la sidebar) au lieu de « popper »',
     ]},
@@ -1097,6 +1101,190 @@
     }, DIT_RELOAD_MS);
   }
 
+  /* ── Bouton "Reformuler avec Gilles" sur éditeur compte rendu DIT ── */
+  /* System prompt CR — passé en systemOverride pour bypasser le prompt Gilles */
+  const CR_SYSTEM = `Tu es un assistant spécialisé dans la rédaction de comptes rendus d'intervention technique pour Digithall à Saint-Rémy-de-Provence (services : achats, déploiement, support tél, reprographie, network).
+
+Ton unique rôle ici est de transformer les notes brutes de l'utilisateur en compte rendu structuré. Tu ne fais rien d'autre.
+
+RÈGLES ABSOLUES :
+- Utilise UNIQUEMENT les informations présentes dans les notes fournies. Ne génère rien d'inventé.
+- Si une section ne peut pas être remplie avec les informations disponibles, omets-la.
+- Formate avec **gras** pour les titres et points clés, tirets pour les listes.
+- Réponds UNIQUEMENT avec le compte rendu, sans commentaire ni introduction.
+
+STRUCTURE À RESPECTER :
+
+**Constat initial**
+Phrase introductive décrivant le contexte (ex: "Prise en main à distance, constat de...")
+
+**Actions réalisées**
+- Action 1
+- Action 2
+(liste des étapes effectuées)
+
+**Tests effectués** (uniquement si mentionnés dans les notes)
+- TEST NOM : OK / ÉCHEC
+
+**Conclusion**
+DEMANDE INITIALE RÉSOLUE : OK
+ou DEMANDE INITIALE RÉSOLUE : ÉCHEC
+ou DEMANDE PARTIELLEMENT RÉSOLUE : préciser`;
+
+  /* Message utilisateur — juste les notes brutes */
+  const CR_USER_PREFIX = `Voici mes notes brutes à transformer en compte rendu :\n\n`;
+
+  /* Convertit le markdown Gemini en HTML compatible TinyMCE inline (pas de h1-h6) */
+  function crMdToHtml(md) {
+    const lines = md.split('\n');
+    let html = '';
+    let inUl = false, inOl = false;
+
+    const closeList = () => {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (inOl) { html += '</ol>'; inOl = false; }
+    };
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const inline = s => esc(s)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,     '<em>$1</em>');
+
+    for (const raw of lines) {
+      const line = raw.replace(/\s+$/,'');
+      if (!line.trim()) { closeList(); html += '<p>&nbsp;</p>'; continue; }
+      /* Titres markdown → div gras souligné (compatible inline TinyMCE) */
+      const mH = line.match(/^#{1,4}\s+(.*)/);
+      if (mH) { closeList(); html += `<p><strong><u>${esc(mH[1])}</u></strong></p>`; continue; }
+      const mUl = line.match(/^\s*[-*•]\s+(.*)/);
+      if (mUl) { if (!inUl) { closeList(); html += '<ul>'; inUl = true; } html += `<li>${inline(mUl[1])}</li>`; continue; }
+      const mOl = line.match(/^\s*\d+[.)]\s+(.*)/);
+      if (mOl) { if (!inOl) { closeList(); html += '<ol>'; inOl = true; } html += `<li>${inline(mOl[1])}</li>`; continue; }
+      closeList();
+      html += `<p>${inline(line)}</p>`;
+    }
+    closeList();
+    return html;
+  }
+
+  /* Injecte le bouton sur l'éditeur DIT compte rendu */
+  function injectReformulerBtn() {
+    const editor = document.querySelector('#ita_messclt');
+    if (!editor || editor.dataset.gilesBtn) return;
+    editor.dataset.gilesBtn = '1';
+
+    /* Overlay fixed par-dessus l'éditeur — ne touche pas au DOM TinyMCE */
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'artis-reformuler-btn';
+    btn.title = 'Reformuler avec Gilles';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 5.5h13A2.5 2.5 0 0 1 19.5 8v6A2.5 2.5 0 0 1 17 16.5H9l-4 3.2V16.5A2.5 2.5 0 0 1 4 14V8A2.5 2.5 0 0 1 6.5 5.5"/><circle cx="8.5" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11" r="1" fill="currentColor" stroke="none"/><path d="M19.5 2.5l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5z" fill="currentColor" stroke="none"/></svg> Reformuler';
+    btn.style.cssText = [
+      'display:flex',
+      'align-items:center',
+      'gap:5px',
+      'padding:4px 10px',
+      'border:1px solid rgba(99,102,241,0.45)',
+      'border-radius:6px',
+      'background:rgba(99,102,241,0.18)',
+      'color:#a5b4fc',
+      'font-size:0.75rem',
+      'font-weight:600',
+      'cursor:pointer',
+      'transition:background 0.2s,color 0.2s',
+      'backdrop-filter:blur(8px)',
+      'line-height:1',
+      'white-space:nowrap',
+    ].join(';');
+
+    btn.addEventListener('mouseenter', () => {
+      btn.style.background = 'rgba(99,102,241,0.35)';
+      btn.style.color = '#e0e7ff';
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.background = 'rgba(99,102,241,0.18)';
+      btn.style.color = '#a5b4fc';
+    });
+
+    btn.addEventListener('click', () => {
+      /* Lecture texte : 3 sources par ordre de fiabilité */
+      let rawText = (editor.innerText || editor.textContent || '').trim();
+      /* Fallback : hidden input (HTML → strip tags) */
+      if (!rawText) {
+        const hi = editor.parentElement && editor.parentElement.querySelector('input[type="hidden"][name="ita_messclt"]');
+        if (hi && hi.value) rawText = hi.value.replace(/<[^>]+>/g, ' ').replace(/\s+/g,' ').trim();
+      }
+      console.log('[Reformuler] texte lu:', rawText);
+      if (!rawText) {
+        btn.innerHTML = '⚠ Champ vide';
+        setTimeout(resetBtn, 2000);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span style="display:inline-block;animation:artis-spin 0.8s linear infinite">⟳</span> En cours…';
+
+      const history = [{ role: 'user', text: CR_USER_PREFIX + rawText }];
+
+      const SVG_BTN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 5.5h13A2.5 2.5 0 0 1 19.5 8v6A2.5 2.5 0 0 1 17 16.5H9l-4 3.2V16.5A2.5 2.5 0 0 1 4 14V8A2.5 2.5 0 0 1 6.5 5.5"/><circle cx="8.5" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11" r="1" fill="currentColor" stroke="none"/><path d="M19.5 2.5l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5z" fill="currentColor" stroke="none"/></svg> Reformuler';
+      const resetBtn = () => { btn.disabled = false; btn.innerHTML = SVG_BTN; };
+      const showErr  = code => { btn.innerHTML = '⚠ ' + code; console.error('[Reformuler]', code); setTimeout(resetBtn, 5000); };
+
+      try {
+        /* Port long-lived : évite le bug MV3 "message port closed before response" */
+        const port = chrome.runtime.connect({ name: 'gilles-ask' });
+        let answered = false;
+
+        port.onMessage.addListener(resp => {
+          answered = true;
+          port.disconnect();
+          if (!resp || !resp.ok) {
+            showErr((resp && resp.error) || 'NO_RESP');
+            return;
+          }
+          const html = crMdToHtml(resp.text);
+          editor.innerHTML = html;
+          editor.dispatchEvent(new Event('input',  { bubbles: true }));
+          editor.dispatchEvent(new Event('change', { bubbles: true }));
+          const hiddenInput = editor.parentElement && editor.parentElement.querySelector('input[type="hidden"][name="ita_messclt"]');
+          if (hiddenInput) hiddenInput.value = html;
+          btn.innerHTML = '✓ Reformulé';
+          setTimeout(resetBtn, 3000);
+        });
+
+        port.onDisconnect.addListener(() => {
+          if (!answered) showErr(chrome.runtime.lastError ? chrome.runtime.lastError.message : 'Recharge la page (F5)');
+        });
+
+        port.postMessage({ type: 'GILLES_ASK', history, pages: [], systemOverride: CR_SYSTEM });
+      } catch (e) {
+        showErr('Recharge la page (F5)');
+      }
+    });
+
+    /* Overlay fixed par-dessus l'éditeur — flex-end pour aligner le bouton à droite */
+    const overlay = document.createElement('div');
+    overlay.id = 'artis-reformuler-overlay';
+    overlay.style.cssText = 'position:fixed;pointer-events:none;z-index:99999;display:flex;align-items:flex-start;justify-content:flex-end;padding:6px 8px 0 0;box-sizing:border-box;';
+    btn.style.pointerEvents = 'auto';
+    overlay.appendChild(btn);
+
+    function positionOverlay() {
+      const rect = editor.getBoundingClientRect();
+      overlay.style.top    = rect.top    + 'px';
+      overlay.style.left   = rect.left   + 'px';
+      overlay.style.width  = rect.width  + 'px';
+      overlay.style.height = rect.height + 'px';
+    }
+
+    document.body.appendChild(overlay);
+    positionOverlay();
+    const ro = new ResizeObserver(positionOverlay);
+    ro.observe(editor);
+    window.addEventListener('scroll', positionOverlay, { passive: true });
+    window.addEventListener('resize', positionOverlay, { passive: true });
+  }
+
   /* ── Init ─────────────────────────────────────────────────── */
   function init() {
     createBackground();
@@ -1121,6 +1309,9 @@
     tagPlanningBlocks(document);          /* préfixe ✅/❌ sur les blocs déjà présents */
     setTimeout(() => tagPlanningBlocks(document), 800);  /* re-pass si planning rendu tard */
     replaceFavicon();
+    injectReformulerBtn();
+    setTimeout(injectReformulerBtn, 1200);   /* re-pass si TinyMCE monte tard */
+    setTimeout(injectReformulerBtn, 3000);
     /* Thème appliqué → révéler le contenu en fondu (anti-saccade reload) */
     requestAnimationFrame(() => document.documentElement.classList.add('artis-ready'));
   }

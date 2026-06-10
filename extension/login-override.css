@@ -322,38 +322,51 @@ button[type="submit"],
 }
 
 /* ── Rangée de boutons (SSO / Entrer / i) ─────────────────────
-   Problème : .btn { width:100% } poussait chaque bouton à pleine largeur →
-   débordement hors de la carte. On cible UNIQUEMENT le conteneur qui contient
-   plusieurs boutons (la rangée SSO) et on rend les boutons largeur auto. */
+   DOM réel : .row.form-actions > .col (checkbox) + .col.btn-action-login > .btn-group.
+   Les 2 colonnes 50/50 entassaient les 3 boutons dans une demi-largeur →
+   texte clippé (« Entre »). Fix : checkbox sur sa propre ligne, boutons en
+   dessous pleine largeur. */
+#loginForm .row.form-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  row-gap: 14px !important;
+}
+#loginForm .row.form-actions > .col {
+  flex: 0 0 100% !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+#loginForm .row.form-actions > .col.d-flex {
+  justify-content: center !important;
+}
+/* Conteneur de boutons : pleine largeur, annule le ms-auto */
 :has(> .btn + .btn) {
   display: flex !important;
   flex-wrap: nowrap !important;
+  width: 100% !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 10px !important;
+  margin: 0 !important;
 }
-/* Boutons côte à côte, se partagent la largeur sans déborder */
+/* Boutons côte à côte : largeur partagée, texte jamais coupé */
 :has(> .btn + .btn) > .btn {
-  flex: 1 1 0 !important;
+  flex: 1 1 auto !important;
   width: auto !important;
   min-width: 0 !important;
-  padding: 0 12px !important;
-  font-size: 0.82rem !important;
+  padding: 0 14px !important;
+  font-size: 0.85rem !important;
   letter-spacing: 0.01em !important;
-}
-/* Case « Rester connecté » : centrée, pleine largeur sur sa propre ligne */
-:has(> .btn + .btn) > label,
-:has(> .btn + .btn) > .checkbox,
-:has(> .btn + .btn) > .form-check {
-  flex: 1 0 100% !important;
-  display: flex !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  margin: 0 0 4px 0 !important;
-  order: -1 !important;
 }
-/* La rangée peut alors passer en wrap pour mettre la case au-dessus, centrée */
-:has(> .btn + .btn) { flex-wrap: wrap !important; }
+/* Bouton icône (i) : carré fixe, ne s'étire pas */
+:has(> .btn + .btn) > .btn-icon {
+  flex: 0 0 52px !important;
+  padding: 0 !important;
+}
 
 /* Case à cocher « Rester connecté » : carré → arrondi */
 #loginForm input[type="checkbox"],

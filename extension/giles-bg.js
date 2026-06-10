@@ -178,16 +178,30 @@ function fmtTime(ts) {
   try { return new Date(ts).toLocaleString('fr-FR'); } catch (e) { return String(ts); }
 }
 
-async function askGemini(history, pages) {
+/* Keep-alive : empêche le service worker MV3 de s'endormir pendant les appels async */
+let _keepAliveTimer = null;
+function swKeepAlive()  { _keepAliveTimer = setInterval(() => chrome.runtime.getPlatformInfo(() => {}), 20000); }
+function swStopAlive()  { clearInterval(_keepAliveTimer); _keepAliveTimer = null; }
+
+async function askGemini(history, pages, systemOverride) {
+  swKeepAlive();
+  try {
   const key = await getApiKey();
   if (!key) return { ok: false, error: 'NO_KEY' };
 
-  /* dernier message utilisateur = requête pour la récupération ciblée */
   const lastUser = [...(history || [])].reverse().find(m => m && m.role !== 'assistant' && m.text);
   const query = lastUser ? lastUser.text : '';
 
-  const [sys, knowledge, models] = await Promise.all([getSystemPrompt(), getKnowledgeFor(query), getModels()]);
-  let systemText = sys + '\n\n========================\nBASE DE CONNAISSANCE ARTIS\n========================\n' + knowledge;
+  /* systemOverride = bypass total du prompt Artis + base de connaissance */
+  let systemText, models;
+  if (systemOverride) {
+    models    = await getModels();
+    systemText = systemOverride;
+  } else {
+    const [sys, knowledge, mdls] = await Promise.all([getSystemPrompt(), getKnowledgeFor(query), getModels()]);
+    models    = mdls;
+    systemText = sys + '\n\n========================\nBASE DE CONNAISSANCE ARTIS\n========================\n' + knowledge;
+  }
 
   /* Mémoire locale des pages visitées (Planning + autres pages).
      Permet de répondre sur une page consultée précédemment. */
@@ -223,6 +237,7 @@ async function askGemini(history, pages) {
     if (r.error === 'OVERLOAD' && i < models.length - 1) await new Promise(rs => setTimeout(rs, 400));
   }
   return last;
+  } finally { swStopAlive(); }
 }
 
 /* Ping santé : liste des modèles — valide la clé SANS consommer de quota génération */
@@ -273,7 +288,18 @@ chrome.notifications.onClicked.addListener(id => {
   });
 });
 
-/* Routeur de messages */
+/* Port long-lived pour GILLES_ASK (évite le bug MV3 "message port closed") */
+chrome.runtime.onConnect.addListener(port => {
+  if (port.name !== 'gilles-ask') return;
+  port.onMessage.addListener(msg => {
+    if (!msg || msg.type !== 'GILLES_ASK') return;
+    askGemini(msg.history, msg.pages, msg.systemOverride || null).then(resp => {
+      try { port.postMessage(resp); } catch (e) {}
+    });
+  });
+});
+
+/* Routeur de messages (sendMessage court-terme) */
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg) return false;
   if (msg.type === 'GILES_ASK')   { askGemini(msg.history, msg.pages).then(sendResponse); return true; }
