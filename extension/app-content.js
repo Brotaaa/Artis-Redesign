@@ -595,8 +595,15 @@
   }
 
   /* ── 6b1. Changelog + bouton version ──────────────────────── */
-  const ARTIS_VERSION = '1.9.44';
+  const ARTIS_VERSION = '1.9.46';
   const CHANGELOG = [
+    { v: '1.9.46', d: '2026-06-10', notes: [
+      'Volet menu : plus de bloc bleu moche au survol des liens (tooltips redondants supprimés + tooltip jQuery UI thémé dark)',
+    ]},
+    { v: '1.9.45', d: '2026-06-10', notes: [
+      'Reformuler : lit le bloc détail DIT (client, site, demandeur, dates, détail demande) → Gilles comprend la demande initiale et explicite les étapes logiques raccord',
+      'Bouton Reformuler déplacé DANS la barre d\'outils du compte rendu (à côté des boutons police/gras)',
+    ]},
     { v: '1.9.44', d: '2026-06-10', notes: [
       'Éditeur compte rendu : barre d\'outils TinyMCE (gras/italique…) en barre solide dark intégrée au bandeau — plus de boutons transparents par-dessus le titre',
       'Menus TinyMCE (listes, « … ») thémés dark + focus indigo sur la zone d\'édition',
@@ -939,6 +946,19 @@
     });
   }
 
+  /* ── 6c1b. Volet menu : retirer les tooltips redondants ─────
+     Les liens Services/Biens/Logistique… portent un title identique
+     au libellé déjà visible → popup bleu moche au survol. On supprime. */
+  function stripMenuTitles() {
+    document.querySelectorAll(
+      '.aside-secondary .menu-link[title], .aside-secondary .menu-title[title], ' +
+      '.aside-secondary a[title], .aside-secondary [data-bs-original-title]'
+    ).forEach(el => {
+      el.removeAttribute('title');
+      el.removeAttribute('data-bs-original-title');
+    });
+  }
+
   /* ── 6c2. Flags de page selon URL (scopes CSS ciblés) ─────── */
   function tagPage() {
     const url = location.href;
@@ -1142,8 +1162,11 @@
 
 Ton unique rôle ici est de transformer les notes brutes de l'utilisateur en compte rendu structuré. Tu ne fais rien d'autre.
 
+CONTEXTE DIT : un bloc « CONTEXTE DE LA DEMANDE (DIT) » peut précéder les notes (client, site, demandeur, dates, détail de la demande initiale). Il sert UNIQUEMENT à comprendre la demande — ne le recopie pas (pas de coordonnées client/site dans le compte rendu).
+
 RÈGLES ABSOLUES :
-- Utilise UNIQUEMENT les informations présentes dans les notes fournies. Ne génère rien d'inventé.
+- Base-toi sur les informations des notes fournies. Ne génère aucun fait technique inventé.
+- Quand une action des notes est raccord avec la demande initiale du contexte, tu PEUX expliciter les étapes logiques évidentes qu'elle implique (ex: « mise à jour de l'ordinateur » → remise en service et vérification du bon fonctionnement pour l'utilisateur). Reste factuel, pas de détails techniques non mentionnés.
 - Si une section ne peut pas être remplie avec les informations disponibles, omets-la.
 - Formate avec **gras** pour les titres et points clés, tirets pour les listes.
 - Réponds UNIQUEMENT avec le compte rendu, sans commentaire ni introduction.
@@ -1168,6 +1191,21 @@ ou DEMANDE PARTIELLEMENT RÉSOLUE : préciser`;
 
   /* Message utilisateur — juste les notes brutes */
   const CR_USER_PREFIX = `Voici mes notes brutes à transformer en compte rendu :\n\n`;
+
+  /* Lit le bloc détail DIT (#s_detail_dit .card-body) → contexte précis pour Gilles :
+     Client / Site / Demandeur / dates / Détail de la demande, en lignes "Label : valeur" */
+  function getDitContext() {
+    const body = document.querySelector('#s_detail_dit .card-body');
+    if (!body) return '';
+    const clean = s => (s || '').replace(/\s+/g, ' ').trim();
+    const lines = [];
+    body.querySelectorAll('.form-group').forEach(fg => {
+      const label = clean(fg.querySelector('label') && fg.querySelector('label').textContent);
+      const value = clean(fg.querySelector('.text-value') && fg.querySelector('.text-value').textContent);
+      if (label && value) lines.push(label + ' : ' + value);
+    });
+    return lines.join('\n');
+  }
 
   /* Convertit le markdown Gemini en HTML compatible TinyMCE inline (pas de h1-h6) */
   function crMdToHtml(md) {
@@ -1206,8 +1244,6 @@ ou DEMANDE PARTIELLEMENT RÉSOLUE : préciser`;
     const editor = document.querySelector('#ita_messclt');
     if (!editor || editor.dataset.gilesBtn) return;
     editor.dataset.gilesBtn = '1';
-
-    /* Overlay fixed par-dessus l'éditeur — ne touche pas au DOM TinyMCE */
 
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -1258,7 +1294,10 @@ ou DEMANDE PARTIELLEMENT RÉSOLUE : préciser`;
       btn.disabled = true;
       btn.innerHTML = '<span style="display:inline-block;animation:artis-spin 0.8s linear infinite">⟳</span> En cours…';
 
-      const history = [{ role: 'user', text: CR_USER_PREFIX + rawText }];
+      /* Contexte DIT (client/site/demande) → Gilles comprend la demande initiale */
+      const ditCtx = getDitContext();
+      const userMsg = (ditCtx ? 'CONTEXTE DE LA DEMANDE (DIT) :\n' + ditCtx + '\n\n' : '') + CR_USER_PREFIX + rawText;
+      const history = [{ role: 'user', text: userMsg }];
 
       const SVG_BTN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 5.5h13A2.5 2.5 0 0 1 19.5 8v6A2.5 2.5 0 0 1 17 16.5H9l-4 3.2V16.5A2.5 2.5 0 0 1 4 14V8A2.5 2.5 0 0 1 6.5 5.5"/><circle cx="8.5" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11" r="1" fill="currentColor" stroke="none"/><path d="M19.5 2.5l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5z" fill="currentColor" stroke="none"/></svg> Reformuler';
       const resetBtn = () => { btn.disabled = false; btn.innerHTML = SVG_BTN; };
@@ -1296,27 +1335,28 @@ ou DEMANDE PARTIELLEMENT RÉSOLUE : préciser`;
       }
     });
 
-    /* Overlay fixed par-dessus l'éditeur — flex-end pour aligner le bouton à droite */
-    const overlay = document.createElement('div');
-    overlay.id = 'artis-reformuler-overlay';
-    overlay.style.cssText = 'position:fixed;pointer-events:none;z-index:99999;display:flex;align-items:flex-start;justify-content:flex-end;padding:6px 8px 0 0;box-sizing:border-box;';
-    btn.style.pointerEvents = 'auto';
-    overlay.appendChild(btn);
+    /* Monte le bouton DANS la barre d'outils TinyMCE inline, à côté des boutons
+       police/gras — la barre (.tox-tinymce-inline) est créée au focus éditeur. */
+    btn.style.margin = '0 2px';
+    /* mousedown sur la barre ne doit pas blur l'éditeur (sinon TinyMCE cache la barre) */
+    btn.addEventListener('mousedown', e => e.preventDefault());
 
-    function positionOverlay() {
-      const rect = editor.getBoundingClientRect();
-      overlay.style.top    = rect.top    + 'px';
-      overlay.style.left   = rect.left   + 'px';
-      overlay.style.width  = rect.width  + 'px';
-      overlay.style.height = rect.height + 'px';
+    function mountInToolbar() {
+      if (document.getElementById('artis-reformuler-btn')) return true;   /* déjà monté */
+      const toolbar = document.querySelector('.tox.tox-tinymce-inline .tox-toolbar__primary');
+      if (!toolbar) return false;
+      const group = document.createElement('span');
+      group.className = 'tox-toolbar__group';
+      group.style.cssText = 'display:flex;align-items:center;';
+      group.appendChild(btn);
+      toolbar.appendChild(group);
+      return true;
     }
 
-    document.body.appendChild(overlay);
-    positionOverlay();
-    const ro = new ResizeObserver(positionOverlay);
-    ro.observe(editor);
-    window.addEventListener('scroll', positionOverlay, { passive: true });
-    window.addEventListener('resize', positionOverlay, { passive: true });
+    if (!mountInToolbar()) {
+      const mo = new MutationObserver(() => { if (mountInToolbar()) mo.disconnect(); });
+      mo.observe(document.body, { childList: true, subtree: true });
+    }
   }
 
   /* ── Init ─────────────────────────────────────────────────── */
@@ -1332,6 +1372,8 @@ ou DEMANDE PARTIELLEMENT RÉSOLUE : préciser`;
     injectThemeToggle();        /* injecte theme + version */
     runSidebarStagger();        /* anime TOUS les boutons d'un coup, raccord */
     setPrimaryWidth();
+    stripMenuTitles();
+    setTimeout(stripMenuTitles, 1200);         /* re-pass si le menu se rend tard */
     setTimeout(collapseAsideByDefault, 500);   /* replie le volet menu une fois Artis initialisé */
     injectLoader(document);
     observeDOM();

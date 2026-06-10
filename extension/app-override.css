@@ -1761,6 +1761,29 @@ html.artis-light .tooltip-inner {
   border-color: rgba(99,102,241,0.25) !important;
 }
 
+/* Tooltip jQuery UI (.ui-tooltip — affichait un bloc bleu brut sur le menu) */
+.ui-tooltip,
+.ui-tooltip .ui-tooltip-content,
+.ui-tooltip-content {
+  background: #1e1e48 !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(99,102,241,0.3) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5) !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-size: 0.78rem !important;
+  padding: 6px 10px !important;
+}
+.ui-tooltip .ui-tooltip-content {
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+html.artis-light .ui-tooltip {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
 /* Popover / tooltip container dark */
 .popover, .tippy-box, .ui-menu {
   background: #181840 !important;

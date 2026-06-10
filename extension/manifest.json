@@ -1,8 +1,8 @@
-{
+﻿{
   "manifest_version": 3,
   "name": "Artis Login Enhancer",
-  "version": "1.9.44",
-  "description": "Modernise login + interface interne Artis.net — dark glassmorphism + animations + assistant IA Gilles",
+  "version": "1.9.46",
+  "description": "Modernise login + interface interne Artis.net Ã¢â‚¬â€ dark glassmorphism + animations + assistant IA Gilles",
   "permissions": ["storage", "notifications"],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",

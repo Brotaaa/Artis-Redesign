@@ -39,7 +39,7 @@ Base : `https://artis.digithall.org/ArtisWebDigitInvest/`
 | Planning | `composants/ccPlanningV2/...` (page `body.page-ccPlanningV2`) | Planning emploi du temps. Blocs `.planning-event`. | Grille dark, blocs harmonisés + hover zoom |
 | Workflow Manager | `composants/workflow/ccWorkflowManager/submit.action` | Tâches/workflow, gros tableaux. | Tables dark, boutons toolbar dark |
 | Mon compte | `composants/commun/navigation/redirect_ccMonCompte.action` | Profil utilisateur (lien depuis carte `#thumbnail`). | — |
-| Saisie CRIT / compte rendu | `composants/services/ccCrit/entreeAjouter.action` | Saisie compte rendu intervention. Éditeur TinyMCE inline `#ita_messclt` (« Commentaire pour le client »). | Bouton Reformuler (Gilles), toolbar TinyMCE dark intégrée au bandeau (v1.9.44) |
+| Saisie CRIT / compte rendu | `composants/services/ccCrit/entreeAjouter.action` | Saisie compte rendu intervention. Éditeur TinyMCE inline `#ita_messclt` (« Commentaire pour le client »). Bloc détail DIT `#s_detail_dit > .card-body` (Client/Site/Demandeur/dates/Détail). | Bouton Reformuler (Gilles) DANS la toolbar TinyMCE + lit le contexte DIT (v1.9.45) ; toolbar dark intégrée au bandeau (v1.9.44) |
 | Aide en ligne | `https://portail.artis.fr/docs/5.0.5/index.html` | Doc externe Artis (nouvelle fenêtre). | — |
 
 ---
@@ -69,7 +69,8 @@ L'utilisateur décrit les éléments en langage courant + donne souvent un **XPa
 | « bouton rond rose » (profil/aide/logout) | Actions carte profil | `#thumbnail .btn.bg-pink-400` → recoloré violet |
 | « sous-menu pour changer le nombre de jours » / « sélecteur de semaine » (en haut EDT) | Date range picker (popup calendrier + raccourcis) | `.daterangepicker` (`.ranges li`, `.drp-calendar`, `table.table-condensed td.in-range/.active`, `.drp-buttons`) — thémé dark |
 | « les 3 boutons » (login) | Rangée SSO / Entrer / À propos | `.row.form-actions` > `.col.btn-action-login` > `.btn-group` (`#b_sso`, `#b_Entrer`, `#aProposModalLoginLink`) — checkbox dans un `.col` séparé, rangée passée en wrap pleine largeur (v1.9.42) |
-| « la preview pour mettre en gras » / barre gras/italique sur le compte rendu | Toolbar inline TinyMCE 6.8 (flottante, ancrée au-dessus de l'éditeur, body-level) | `.tox.tox-tinymce-inline` > `.tox-editor-header` ; boutons `.tox-tbtn` ; popups `.tox-pop/.tox-menu/.tox-collection` (dans `.tox-tinymce-aux`) ; éditeur = `.editor-artis-inline#ita_messclt` (page entreeAjouter ccCrit) — thémée dark solide v1.9.44 |
+| « la preview pour mettre en gras » / barre gras/italique sur le compte rendu | Toolbar inline TinyMCE 6.8 (flottante, ancrée au-dessus de l'éditeur, body-level) | `.tox.tox-tinymce-inline` > `.tox-editor-header` ; boutons `.tox-tbtn` ; popups `.tox-pop/.tox-menu/.tox-collection` (dans `.tox-tinymce-aux`) ; éditeur = `.editor-artis-inline#ita_messclt` (page entreeAjouter ccCrit) — thémée dark solide v1.9.44 ; bouton `#artis-reformuler-btn` monté dedans (`.tox-toolbar__primary`, v1.9.45) |
+| « bloc détail de la demande » / contexte DIT (Client, Site, Demandeur, Date, Détail) | Carte récap DIT en haut de la saisie CR | `#s_detail_dit > .card-body` — `.form-group` (`label` + `.text-value`), lu par `getDitContext()` pour le bouton Reformuler |
 
 ### Notes comportement utilisateur
 - Donne souvent **XPath** au lieu de classe → utiliser pour localiser, mais cibler par **classe/id stable** dans le CSS (XPath `div[12]` = index fragile).
@@ -91,6 +92,7 @@ L'utilisateur décrit les éléments en langage courant + donne souvent un **XPa
 - Polices locales : tout `.woff2` chargé par la page doit être dans `web_accessible_resources` du manifest (`fonts/*.woff2`), sinon bloqué.
 - Permission `tabs` retirée (v1.9.43) : `tabs.query({url})` marche via la host permission `artis.digithall.org` ; `reload/update` n'ont jamais eu besoin de permission.
 - MutationObserver (app-content) : traitement batché par frame + `disconnect()` pendant nos écritures — ne pas remettre de strip synchrone dans le callback (boucle de rétroaction).
+- Toolbar TinyMCE inline : créée **au premier focus** de l'éditeur (pas au load) → tout bouton injecté dedans n'apparaît qu'après clic dans la zone de texte. Sur un bouton custom dans la barre : `mousedown → preventDefault()` obligatoire, sinon blur de l'éditeur = TinyMCE cache la barre avant le `click`.
 
 ---
 
