@@ -39,6 +39,7 @@ Base : `https://artis.digithall.org/ArtisWebDigitInvest/`
 | Planning | `composants/ccPlanningV2/...` (page `body.page-ccPlanningV2`) | Planning emploi du temps. Blocs `.planning-event`. | Grille dark, blocs harmonisés + hover zoom |
 | Workflow Manager | `composants/workflow/ccWorkflowManager/submit.action` | Tâches/workflow, gros tableaux. | Tables dark, boutons toolbar dark |
 | Mon compte | `composants/commun/navigation/redirect_ccMonCompte.action` | Profil utilisateur (lien depuis carte `#thumbnail`). | — |
+| Saisie CRIT / compte rendu | `composants/services/ccCrit/entreeAjouter.action` | Saisie compte rendu intervention. Éditeur TinyMCE inline `#ita_messclt` (« Commentaire pour le client »). | Bouton Reformuler (Gilles), toolbar TinyMCE dark intégrée au bandeau (v1.9.44) |
 | Aide en ligne | `https://portail.artis.fr/docs/5.0.5/index.html` | Doc externe Artis (nouvelle fenêtre). | — |
 
 ---
@@ -68,6 +69,7 @@ L'utilisateur décrit les éléments en langage courant + donne souvent un **XPa
 | « bouton rond rose » (profil/aide/logout) | Actions carte profil | `#thumbnail .btn.bg-pink-400` → recoloré violet |
 | « sous-menu pour changer le nombre de jours » / « sélecteur de semaine » (en haut EDT) | Date range picker (popup calendrier + raccourcis) | `.daterangepicker` (`.ranges li`, `.drp-calendar`, `table.table-condensed td.in-range/.active`, `.drp-buttons`) — thémé dark |
 | « les 3 boutons » (login) | Rangée SSO / Entrer / À propos | `.row.form-actions` > `.col.btn-action-login` > `.btn-group` (`#b_sso`, `#b_Entrer`, `#aProposModalLoginLink`) — checkbox dans un `.col` séparé, rangée passée en wrap pleine largeur (v1.9.42) |
+| « la preview pour mettre en gras » / barre gras/italique sur le compte rendu | Toolbar inline TinyMCE 6.8 (flottante, ancrée au-dessus de l'éditeur, body-level) | `.tox.tox-tinymce-inline` > `.tox-editor-header` ; boutons `.tox-tbtn` ; popups `.tox-pop/.tox-menu/.tox-collection` (dans `.tox-tinymce-aux`) ; éditeur = `.editor-artis-inline#ita_messclt` (page entreeAjouter ccCrit) — thémée dark solide v1.9.44 |
 
 ### Notes comportement utilisateur
 - Donne souvent **XPath** au lieu de classe → utiliser pour localiser, mais cibler par **classe/id stable** dans le CSS (XPath `div[12]` = index fragile).

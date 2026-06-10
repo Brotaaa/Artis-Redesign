@@ -2858,3 +2858,106 @@ button:active,
   color: #e2e8f0 !important;
   border: 1px solid rgba(99,102,241,0.3) !important;
 }
+
+/* ══════════════════════════════════════════════════════════
+   TINYMCE 6 INLINE — éditeur « Commentaire pour le client »
+   (#ita_messclt et autres .editor-artis-inline)
+   La barre d'outils flottante (.tox-tinymce-inline) s'affichait
+   transparente PAR-DESSUS le titre du bandeau → illisible.
+   → barre solide dark glass, intégrée visuellement au bandeau.
+   ══════════════════════════════════════════════════════════ */
+
+/* Conteneur flottant (ancré par TinyMCE au-dessus de l'éditeur) */
+.tox.tox-tinymce-inline {
+  z-index: 2147483200 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+/* La barre elle-même : fond SOLIDE (recouvre proprement le titre) */
+.tox.tox-tinymce-inline .tox-editor-header {
+  background: linear-gradient(160deg, #1d1d46 0%, #15153a 100%) !important;
+  border: 1px solid rgba(99,102,241,0.4) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  padding: 3px 6px !important;
+  overflow: hidden !important;
+}
+
+/* Fonds internes (rayures grises par défaut) → transparents */
+.tox .tox-toolbar-overlord,
+.tox .tox-toolbar,
+.tox .tox-toolbar__primary,
+.tox .tox-toolbar__overflow {
+  background: transparent !important;
+  background-image: none !important;
+}
+.tox .tox-toolbar__group {
+  border-color: rgba(99,102,241,0.18) !important;
+  padding: 0 4px !important;
+}
+
+/* Boutons de la barre */
+.tox .tox-tbtn {
+  background: transparent !important;
+  border-radius: 8px !important;
+  color: #e2e8f0 !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease !important;
+}
+.tox .tox-tbtn svg { fill: #cbd5e1 !important; }
+.tox .tox-tbtn:hover,
+.tox .tox-tbtn:focus {
+  background: rgba(99,102,241,0.22) !important;
+}
+.tox .tox-tbtn:hover svg { fill: #fff !important; }
+.tox .tox-tbtn--enabled,
+.tox .tox-tbtn--enabled:hover {
+  background: rgba(99,102,241,0.35) !important;
+}
+.tox .tox-tbtn--enabled svg { fill: #c7d2fe !important; }
+.tox .tox-tbtn--disabled svg,
+.tox .tox-tbtn--disabled:hover svg { fill: rgba(148,163,184,0.35) !important; }
+.tox .tox-tbtn__select-label { color: #e2e8f0 !important; }
+.tox .tox-tbtn__select-chevron svg { fill: #94a3b8 !important; }
+.tox .tox-split-button:hover { box-shadow: none !important; }
+
+/* Menus / popups TinyMCE (listes, overflow « … », couleurs) — body-level .tox-tinymce-aux */
+.tox .tox-menu,
+.tox .tox-pop,
+.tox .tox-pop__dialog,
+.tox .tox-collection {
+  background-color: #15153a !important;
+  border: 1px solid rgba(99,102,241,0.35) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.6) !important;
+  color: #e2e8f0 !important;
+}
+.tox .tox-pop::before,
+.tox .tox-pop::after { display: none !important; }   /* flèche claire du popover */
+.tox .tox-collection__item {
+  color: #e2e8f0 !important;
+  border-radius: 8px !important;
+}
+.tox .tox-collection__item svg { fill: #cbd5e1 !important; }
+.tox .tox-collection__item--active,
+.tox .tox-collection__item--enabled,
+.tox .tox-collection__item:hover {
+  background: rgba(99,102,241,0.22) !important;
+  color: #fff !important;
+}
+.tox .tox-collection__item-label,
+.tox .tox-collection__item-accessory { color: inherit !important; }
+
+/* Zone éditable : focus visible propre (anneau indigo) */
+.editor-artis.editor-artis-inline {
+  border: 1px solid rgba(99,102,241,0.35) !important;
+  border-radius: 10px !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+.editor-artis.editor-artis-inline:focus,
+.editor-artis.editor-artis-inline:focus-within {
+  outline: none !important;
+  border-color: rgba(99,102,241,0.65) !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
+}

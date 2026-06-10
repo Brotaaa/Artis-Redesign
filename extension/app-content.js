@@ -595,8 +595,12 @@
   }
 
   /* ── 6b1. Changelog + bouton version ──────────────────────── */
-  const ARTIS_VERSION = '1.9.43';
+  const ARTIS_VERSION = '1.9.44';
   const CHANGELOG = [
+    { v: '1.9.44', d: '2026-06-10', notes: [
+      'Éditeur compte rendu : barre d\'outils TinyMCE (gras/italique…) en barre solide dark intégrée au bandeau — plus de boutons transparents par-dessus le titre',
+      'Menus TinyMCE (listes, « … ») thémés dark + focus indigo sur la zone d\'édition',
+    ]},
     { v: '1.9.43', d: '2026-06-10', notes: [
       'Perf : canvas pré-rendu (grille/orbes statiques), pause onglet caché, 30 fps, connexions par buckets',
       'Perf : MutationObserver batché par frame + déconnexion pendant nos écritures (fin des boucles)',
