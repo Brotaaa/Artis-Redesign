@@ -1,7 +1,7 @@
 ﻿{
   "manifest_version": 3,
   "name": "Artis Login Enhancer",
-  "version": "1.9.48",
+  "version": "1.9.49",
   "description": "Modernise login + interface interne Artis.net — dark glassmorphism + animations + assistant IA Gilles",
   "permissions": ["storage", "notifications"],
   "host_permissions": [
