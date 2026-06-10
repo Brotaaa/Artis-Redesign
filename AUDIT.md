@@ -1,300 +1,178 @@
-# AUDIT — Performance & Efficacité du code
+# AUDIT — Performance, Efficacité & Sécurité
 
-> **STATUT 2026-06-10 (v1.9.43) — corrections appliquées :**
-> - ✅ #1 Canvas : grille+orbes+dégradé pré-rendus offscreen, pause `visibilitychange`, throttle 30 fps, connexions via buckets spatiaux (app + login)
-> - ✅ #2 Observer : mutations batchées (1 traitement/frame via rAF), passes blanc+bleu fusionnées, `disconnect()` pendant nos écritures. Portée reste `body` (les dropdowns Artis sont en fin de body — piège connu)
-> - ✅ #3 `capturePageText` : mémoïsée (clé page + childElementCount + TTL 4 s) ; `innerText` conservé (règle error.md : respecte la visibilité)
-> - ✅ #4 Init : `initialSweep()` = un seul parcours (blanc + bleu + boutons + form wrappers)
-> - ✅ #5 (partiel) : hover sidebar dédupliqué, `backdrop-filter` 20-22px → 10-12px partout. NON fait : scoper les `!important` sous `#page-content` (casserait les menus body-level) ; split du fichier par page
-> - ✅ #6 : `artis.txt` caché (`_base`), budget KB 80k → 50k chars
-> - ✅ #7 : `showChangelog` + `injectWatermark` supprimés (CHANGELOG conservé comme journal)
->
-> **Sécurité :**
-> - ✅ S1 (partiel) : clé envoyée en header `x-goog-api-key` (plus en query string). `apigemini.txt` reste en local dev (gitignored, hors WAR) — à exclure d'un éventuel build de release ; restrictions/rotation de clé côté Google = action manuelle
-> - ✅ S2 : URLs nettoyées (`session/cKey/cStatus=***`) avant stockage/envoi ; toggle popup « Partage pages → Gilles » + notice de confidentialité dans le panel. NON fait : rédaction PII automatique
-> - ✅ S3 : conversations purgées après 30 jours ; pages restent en sessionStorage uniquement ; purge des pages si partage désactivé
-> - ✅ S4 : permission `tabs` retirée (host permission `artis.digithall.org` à la place), matches restreints à `artis.digithall.org` (jokers `*.artis.fr/.net` supprimés)
-> - S5 : inchangé (échappement `esc()` déjà en place — risque maîtrisé)
-> - ✅ S6 : `console.log` du texte page (Reformuler) supprimé ; aucune clé loggée
-> - ✅ S7 : polices bundlées (`fonts/*.woff2` + `fonts.css`), plus aucune requête Google Fonts
+Date : 2026-06-10 · Version auditée : **1.9.47** · Périmètre : `extension/` complet
+Légende : 🔴 fort impact · 🟠 moyen · 🟡 faible · 🟢 OK
 
-Date : 2026-06-09 · Version auditée : 1.9.21
-Périmètre : `extension/*.js` + `extension/*.css` (5 694 lignes)
-
-Légende sévérité : 🔴 fort impact · 🟠 moyen · 🟡 faible / cosmétique
-
-| Fichier | Lignes |
-|---------|--------|
-| app-override.css | 2662 |
-| app-content.js | 972 |
-| login-override.css | 429 |
-| content.js | 353 |
-| giles-bg.js | 283 |
-| giles.css | 253 |
-| giles.js | 488 |
-| popup.js | 141 |
-| popup.css | 113 |
+> Cet audit remplace celui du 2026-06-09 (v1.9.21/1.9.22). Tous les points 🔴 de
+> l'audit précédent ont été corrigés en v1.9.43 (canvas pré-rendu + pause onglet caché,
+> observer batché, capture mémoïsée, balayage init unique, artis.txt caché, token de
+> session nettoyé, clé en header, permission tabs retirée, polices locales).
+> L'historique détaillé est dans le CHANGELOG (v1.9.43) et le git log.
 
 ---
 
-## 🔴 1. Canvas — boucle de rendu coûteuse en continu
+## État des lieux (mesuré)
 
-**Fichiers :** `app-content.js` (`createBackground`, l.42-117) · `content.js` (`createBackground`, l.33-133)
-
-Problèmes par frame (60 fps, en permanence tant que l'onglet est visible) :
-- **Connexions particules O(n²)** : double boucle `for i / for j`. App = 60 particules → ~1 770 paires/frame ; Login = 90 → ~4 005 paires/frame. Chaque paire fait un `Math.sqrt`.
-- **Grille de points redessinée chaque frame** : `(W/40)·(H/40)` arcs. En 1920×1080 ≈ 48·27 = **1 296 arcs/frame** recalculés alors que la grille est **statique**.
-- **Orbes + gradients** recréés chaque frame (`createRadialGradient`).
-- rAF **jamais mis en pause** quand l'onglet est masqué (hors `prefers-reduced-motion`) ou quand le canvas est entièrement recouvert.
-
-**Impact :** CPU/GPU constant, batterie, ventilateur — le plus gros poste de conso.
-
-**Recommandations :**
-1. Pré-rendre **grille de points + orbes** sur un canvas offscreen (ou dégradé CSS statique) ; ne réanimer que les particules.
-2. Plafonner les connexions : grille spatiale (buckets) au lieu du O(n²), ou supprimer les liaisons.
-3. `document.hidden` → `cancelAnimationFrame` ; reprendre sur `visibilitychange`.
-4. Throttle à 30 fps suffit pour un fond.
+| Fichier | Lignes | Notes |
+|---------|--------|-------|
+| app-override.css | 3 014 | **1 233 `!important`**, 13 `backdrop-filter`, 20 `[style*=]` |
+| app-content.js | 1 433 | dont ~250 lignes de CHANGELOG (données, pas du code) |
+| giles.js | 594 | UI Gilles |
+| login-override.css | 509 | 245 `!important` |
+| content.js | 368 | login |
+| giles-bg.js | 312 | service worker |
+| giles.css / popup.* | ~545 | propres (1 `!important`) |
+| `knowledge/` | 1,6 Mo | bundle local, lu à la demande (caché) — OK |
 
 ---
 
-## 🔴 2. MutationObserver global non throttlé + walks O(n) imbriqués
+## A. Constats restants (code actuel)
 
-**Fichier :** `app-content.js` `observeDOM` (l.414-468)
+### 🟠 A1. `querySelectorAll('*')` dans les strips
 
-- Observe `document.body` avec `childList + subtree + attributes` (`style`, `class`, `data-idinterrealisee`).
-- Pour **chaque nœud ajouté** : `stripWhiteBg` + `stripArtisBlueBg`, et si enfants → `stripAllWhite(node)` + `stripAllArtisBlueBg(node)` qui font **deux `querySelectorAll('*')`** sur le sous-arbre.
-- Le planning injecte des **centaines de nœuds** → coût quasi quadratique sur gros rendus.
-- **Boucle de rétroaction** : `stripWhiteBg` retire un `style` → déclenche une mutation `attributes:style` → ré-exécute le handler. Idem `applyStateEmoji` écrit `title.textContent` (childList) — protégé par un test d'égalité, mais le réveil de l'observer a un coût.
+**Fichiers :** `app-content.js` (`initialSweep` l.1040, `stripAllInline` l.385) · `content.js` (`nukeWhiteBg` l.21)
 
-**Recommandations :**
-1. **Débattre/regrouper** : accumuler les mutations et traiter dans un `requestIdleCallback` / microtask unique par frame.
-2. Fusionner les deux passes `stripWhiteBg`+`stripArtisBlueBg` en **un seul parcours** (`stripAll` combiné) — évite 2× `querySelectorAll('*')`.
-3. Se **déconnecter** pendant nos propres écritures de style, puis reconnecter (`observer.disconnect()/observe()`), pour casser la rétroaction.
-4. Restreindre la portée : observer le conteneur app (`#page-content`) plutôt que `body` entier.
+`stripInline()` n'agit **que sur les styles inline** (`el.style`). Itérer TOUS les
+éléments est inutile : seuls ceux qui ont un attribut `style` peuvent matcher.
 
----
+**Fix (gain élevé, effort faible) :** remplacer `querySelectorAll('*')` par
+`querySelectorAll('[style]')` dans `initialSweep`, `stripAllInline` et `nukeWhiteBg`
+(garder `'*'` uniquement pour la partie boutons d'`initialSweep`, ou tester
+`isButtonish` via un second sélecteur `.btn, button, input[type=button], input[type=submit], [role=button]`).
+Sur une page planning (~milliers de nœuds, dizaines avec style inline), ça divise
+le travail par 10-100.
 
-## 🔴 3. `capturePageText()` — clone du body entier à chaque appel
+### 🟠 A2. CHANGELOG embarqué dans `app-content.js`
 
-**Fichier :** `giles.js` (l. ~capturePageText) + `storeCurrentPage`
+~250 lignes / ~10 Ko de **données** parsées à chaque chargement de page, alors que
+le bouton version ouvre GitHub depuis v1.9.15 (plus de modal changelog).
 
-- `document.body.cloneNode(true)` **clone tout le DOM**, puis `querySelectorAll(skip).remove()`, puis `.innerText` (force un **reflow**).
-- Appelé : à `mount`, `setTimeout(1500)`, **et à chaque `onSubmit`**. Sur une page planning lourde, clone + innerText = plusieurs ms à chaque message.
+**Fix :** déplacer le journal vers un `CHANGELOG.md` à la racine du repo ; ne garder
+dans le JS que `ARTIS_VERSION`. Mettre à jour la règle de maintenance dans CLAUDE.md
+(fait). Bonus : un `CHANGELOG.md` est lisible sur GitHub, là où pointe le bouton.
 
-**Recommandations :**
-1. Ne pas cloner : lire `document.body.innerText` puis filtrer le texte de nos UI par regex, ou exclure via un conteneur ciblé (`#page-content`).
-2. **Mémoïser** la capture (invalidée par l'observer ou un hash de `body.childElementCount`) plutôt que recapturer à chaque envoi.
-3. `innerText` (reflow) → préférer `textContent` si la mise en forme visuelle n'est pas requise.
+### 🟠 A3. Pages envoyées à Gemini à CHAQUE message
 
----
+**Fichier :** `giles.js` `onSubmit` → `getStoredPages()` (jusqu'à 40 k chars) +
+base de connaissance (50 k chars) **rejoints au `systemInstruction` à chaque tour**.
 
-## 🟠 4. Multiples passes plein-DOM à l'init
+Coût : latence + tokens à chaque message, même si la question ne porte pas sur la page.
 
-**Fichier :** `app-content.js` `init` (l.875-896)
+**Fix possible :** n'envoyer le contexte pages que (a) au 1er message de la
+conversation, puis (b) quand la page courante a changé depuis le dernier envoi
+(comparer `pageKey()` + timestamp). Le service worker garde le dernier contexte
+envoyé par tab. Gain : ~80 % de tokens en moins sur une conversation suivie.
 
-Séquence au chargement, chacune parcourant tout ou partie du DOM :
-`stripAllWhite(body)` → `stripAllArtisBlueBg(body)` → `stripFormWrappers` (`body > form *`) → `stripWhiteButtons` (tous boutons) → `stripNotificationsTable` → `styleProfileCard` (+ `setTimeout 800` re-pass) → `tagPlanningBlocks` (+ `setTimeout 800`).
+### 🟡 A4. Observer fallback du bouton Reformuler
 
-= **4-5 balayages complets** consécutifs. `styleProfileCard` appelle `getComputedStyle` dans une boucle (reflows).
+**Fichier :** `app-content.js` `injectReformulerBtn` (l.1359-1362)
 
-**Recommandations :**
-1. **Un seul parcours** `querySelectorAll('*')` appliquant white-strip + blue-strip + bouton en une fois.
-2. Privilégier le **CSS** (déjà `injectNuclearCSS`) pour les fonds statiques ; réserver le JS aux `style` inline dynamiques.
-3. Mettre en cache les `getComputedStyle` ou cibler par sélecteur au lieu de tester la couleur calculée.
+Le `MutationObserver(body, subtree)` tourne tant que la toolbar TinyMCE n'existe pas
+(= tant que l'utilisateur n'a pas cliqué dans l'éditeur), et fait un `querySelector`
+par lot de mutations.
 
----
+**Fix :** déclencher le montage sur `editor.addEventListener('focusin', ...)` (la
+toolbar est créée au focus) au lieu d'observer tout le body. Une ligne, zéro polling.
 
-## 🟠 5. CSS — redondance et coût de recalc
+### 🟡 A5. Autoreload DIT (onglet caché) = rechargement complet
 
-**Fichier :** `app-override.css` (2662 lignes)
+**Fichier :** `app-content.js` `startDitMonitor`
 
-- **Règles dupliquées** : `.aside-primary .nav-link.btn.btn-icon:hover` redéfini à ~l.672, 2337, 2469 ; variantes `:hover` boutons éparpillées. Maintenance + poids.
-- **Sélecteurs très larges + `!important`** : `div, section, article, main, header, footer, p, span { background-color: transparent !important }`, `* { box-sizing }`, `* { scrollbar-color }`. Forcent un style recalc large à chaque mutation.
-- **`[style*="..."]` nombreux** (nuclear CSS) : attribute-substring matching réévalué sur changements de `style` — coûteux combiné à l'observer.
-- **`backdrop-filter: blur()`** empilé (cards, `.aside-secondary`, panel Gilles, login) : **très lourd GPU**, surtout plusieurs couches visibles simultanément.
-- `:has(...)` (l.2370) : recalc supplémentaire (acceptable, peu d'occurrences).
+`location.reload()` toutes les 60 s relance Artis + extension + capture complète.
+Acceptable (onglet caché, canvas en pause), mais la version sobre serait un
+`fetch(location.href)` + parse du tableau dans une `DOMParser` sans recharger.
+À faire seulement si la conso devient visible.
 
-**Recommandations :**
-1. **Dédupliquer** les blocs `:hover` sidebar (1 seule définition).
-2. Limiter `backdrop-filter` aux surfaces réellement translucides ; baisser le rayon (20px→12px) ou retirer sur les grandes surfaces.
-3. Scoper les `!important` larges sous un conteneur (`#page-content ...`) au lieu du sélecteur de type nu.
-4. Envisager un **split** du fichier (login/app/planning) chargé par page.
+### 🟡 A6. Favicon = `justejohn.png` (165 Ko)
 
----
+`replaceFavicon()` (app + login) charge un PNG de 165 Ko comme favicon.
+**Fix :** pointer vers `icon-32.png` (1,6 Ko) — même visuel, 100× plus léger.
 
-## 🟠 6. `giles-bg.js` — `artis.txt` rechargé à chaque message
+### 🟡 A7. CSS — dette contenue mais à ne pas aggraver
 
-**Fichier :** `giles-bg.js` `getKnowledgeFor` (l.58-59)
+- `app-override.css` = monolithe 3 014 lignes chargé sur toutes les pages app.
+  Les scopes par page existent (`html.artis-page-planning/-entree`) → continuer à
+  scoper les nouvelles règles plutôt qu'élargir les règles globales.
+- 1 233 `!important` : nécessaires pour battre le CSS Artis + styles inline, mais
+  chaque nouveau doit le justifier (voir règles §C).
+- Sélecteurs larges conservés sciemment : `* { scrollbar-* }` (l.2575),
+  `p, span.menu-title, td, li { color }` (l.2254), `[style*=]` ×20 + nuclear CSS.
+  Coût de recalc maîtrisé depuis que l'observer écrit par lots — ne pas en ajouter.
+- Doublons réels quasi nuls (≤ 2 occurrences, surtout keyframes) — rien d'urgent.
 
-- `const base = await loadText('artis.txt')` : **fetch non mis en cache**, exécuté à **chaque** `GILES_ASK`, alors que `_systemPrompt`, `_index`, `_fileCache` sont cachés.
-- `KB_MAX_CHARS = 80000` (~20k tokens) envoyé + désormais le **contexte pages** (jusqu'à 40k chars) → requêtes Gemini lourdes : latence + coût + risque de dépassement de contexte.
+### 🟡 A8. `content.js` (login) — observer non batché
 
-**Recommandations :**
-1. Cacher `artis.txt` (`_base`) comme les autres ressources.
-2. Réduire le budget combiné `KB + pages` (ex : 50k total) et prioriser le contexte page courante sur la base statique selon la question.
+`nukeWhiteBg` strippe à chaque mutation sans regroupement, contrairement au pattern
+batché d'`app-content.js`. Page login = petite, impact faible. À aligner sur le
+pattern commun si on retouche le fichier.
 
----
+### 🟢 Points sains constatés
 
-## 🟡 7. Code mort / poids inutile
-
-- `app-content.js` : `showChangelog()` (l.~707) **plus appelée** depuis que le bouton version ouvre GitHub — supprimable (+ overlay/CSS associés si inutilisés).
-- `content.js` : `injectWatermark()` **plus appelée** (watermark retiré v1.9.16) — supprimable.
-- `app-content.js` : `injectThemeToggle` redéclare des SVG inline volumineux (acceptable mais factorisable).
-
-**Recommandation :** purge du code mort → moins de parse/poids.
-
----
-
-## 🟡 8. Divers
-
-- `setPrimaryWidth` : `ResizeObserver` + `resize` listener sur la sidebar — OK, peu d'événements.
-- `addBubble` : `activeMessages` capé à 40 — OK.
-- `savePages` : `JSON.parse`/`stringify` jusqu'à 40k chars à chaque navigation — acceptable, mais à surveiller si budget augmente.
-- Pas de `passive` sur certains listeners (non critiques ici).
-- Double canvas (login + app) jamais simultanés (pages distinctes) — OK.
+- Canvas : statique pré-rendu, 30 fps, pause `document.hidden`, buckets spatiaux.
+- MutationObserver principal : batch par frame + `disconnect()` pendant écritures.
+- Service worker : caches (`_systemPrompt`, `_base`, `_index`, `_fileCache`),
+  keep-alive borné, clé en header, fallback multi-modèles.
+- Capture page mémoïsée (TTL 4 s), URLs sanitizées (`session/cKey/cStatus=***`).
+- Permissions minimales (`storage`, `notifications`, 2 hosts), polices locales,
+  pas d'`eval`/script distant, échappement HTML systématique.
 
 ---
 
-## Synthèse priorisée
+## B. Plan d'action priorisé
 
-| # | Sévérité | Gain | Effort | Action |
-|---|----------|------|--------|--------|
-| 1 | 🔴 | Élevé | Moyen | Canvas : grille/orbes statiques + pause `document.hidden` + cap connexions |
-| 2 | 🔴 | Élevé | Moyen | Observer : throttle (rIC), fusion passes, disconnect pendant nos écritures |
-| 3 | 🔴 | Moyen | Faible | `capturePageText` : sans clone + mémoïsation |
-| 4 | 🟠 | Moyen | Faible | Init : fusionner les balayages plein-DOM |
-| 5 | 🟠 | Moyen | Moyen | CSS : dédupliquer, alléger `backdrop-filter` |
-| 6 | 🟠 | Moyen | Faible | Cacher `artis.txt` + réduire budget tokens |
-| 7 | 🟡 | Faible | Faible | Supprimer code mort (`showChangelog`, `injectWatermark`) |
+| # | Sév. | Gain | Effort | Action |
+|---|------|------|--------|--------|
+| A1 | 🟠 | Élevé (pages lourdes) | 15 min | `[style]` au lieu de `'*'` dans les 3 strips |
+| A2 | 🟠 | Moyen (parse/poids) | 30 min | CHANGELOG → `CHANGELOG.md`, JS ne garde que la version |
+| A3 | 🟠 | Élevé (tokens/latence) | 1-2 h | Contexte pages envoyé seulement si nouveau/modifié |
+| A4 | 🟡 | Faible | 10 min | Reformuler : montage sur `focusin` au lieu d'observer body |
+| A6 | 🟡 | Faible | 5 min | Favicon → `icon-32.png` |
+| A5 | 🟡 | Faible | 2 h | Autoreload DIT → fetch+parse (seulement si besoin) |
+| A8 | 🟡 | Faible | 30 min | Login : batcher l'observer comme l'app |
 
-**Quick wins (faible effort, effet immédiat) :** #3, #4, #6, #7 + pause canvas sur onglet masqué (partie de #1).
-
-> Audit en lecture seule — aucune modification de code appliquée. Dire quels points traiter et je les implémente.
-
----
----
-
-# AUDIT — Sécurité & Confidentialité
-
-Date : 2026-06-09 · Version auditée : 1.9.22
-Périmètre : extension MV3 complète (content scripts, service worker, popup, manifest).
-
-Légende : 🔴 critique · 🟠 important · 🟡 mineur · 🟢 OK / bonne pratique constatée
+**Quick wins immédiats : A1 + A4 + A6** (30 min cumulées, zéro risque).
 
 ---
 
-## 🔴 S1. Clé API Gemini embarquée et exfiltrable
+## C. Règles d'or pour le code FUTUR
 
-**Fichiers :** `giles-bg.js` `getApiKey` (l.109-122) · `apigemini.txt` (bundlé) · `chrome.storage.local['giles_api_key']`
+À appliquer à toute nouvelle fonctionnalité (reprises dans CLAUDE.md) :
 
-- La clé peut venir de **`apigemini.txt` livré dans le paquet de l'extension**. Toute personne qui installe/récupère le `.crx`/dossier peut **lire le fichier et voler la clé** (un `.crx` est une archive ; le dossier non packagé est en clair).
-- La clé saisie via la popup est stockée **en clair** dans `chrome.storage.local` (lisible par toute extension ayant accès au profil / quiconque a accès à la machine).
-- La clé est transmise en **query string** de l'URL Gemini (`?key=...`, l.146) → susceptible d'apparaître dans des logs/proxies.
-
-**Mitigations existantes :** 🟢 `apigemini.txt` **n'est pas** dans `web_accessible_resources` (seul `justejohn.png` l'est) → une page web ne peut pas le `fetch`. `host_permissions` limité à `generativelanguage.googleapis.com`.
-
-**Recommandations :**
-1. **Ne pas embarquer de clé** dans le paquet distribué. Forcer la saisie par utilisateur (popup) ; retirer `apigemini.txt` du build de release.
-2. Restreindre la clé côté Google (referrers/quotas) ; prévoir rotation.
-3. Idéalement, proxy backend signant les requêtes (la clé ne touche jamais le client). Sinon assumer la clé comme « semi-publique » à quota limité.
-
----
-
-## 🔴 S2. Exfiltration de données métier vers un tiers (Google)
-
-**Fichiers :** `giles.js` `capturePageText` / `storeCurrentPage` / `onSubmit` · `giles-bg.js` `askGemini`
-
-- Tout le **texte de la page ERP** (clients, interventions, planning, données potentiellement **personnelles → RGPD**) est envoyé à l'**API Google Gemini** à chaque message.
-- La **mémoire de pages** envoie *plusieurs* pages d'un coup (jusqu'à 40k chars).
-- **Fuite de jeton de session** : `storeCurrentPage` stocke `cap.url = location.href` **complet, avec le paramètre `session=...`** ; `getStoredPages()` envoie ce `p.url` à Gemini (`giles-bg.js` ajoute « URL : … »). Le **token de session Artis part chez un tiers**.
-
-**Recommandations :**
-1. **Nettoyer les URL** avant stockage/envoi : supprimer `session`, `cKey`, tout token (`url.replace(/([?&])(session|cKey|cStatus)=[^&]*/gi, '$1$2=***')`).
-2. Avertir l'utilisateur (consentement) que le contenu de la page est envoyé à Google ; rendre la capture **opt-in**.
-3. Masquer/rédiger les données sensibles (emails, téléphones, n° client) avant envoi, ou limiter la capture à la zone utile.
-4. Vérifier la conformité RGPD (sous-traitant US, finalité, base légale) — point **juridique**, pas seulement technique.
+1. **Jamais `querySelectorAll('*')`** — cibler l'attribut/classe réellement visé
+   (`[style]`, `.btn`, …).
+2. **Tout observer** : batch par frame (rAF), `disconnect()` pendant nos écritures,
+   portée minimale, **se déconnecter quand il a fini son travail** (one-shot →
+   préférer un événement précis : `focusin`, `load`, etc.).
+3. **Toute boucle d'animation** : pause sur `document.hidden`, fps plafonné,
+   couches statiques pré-rendues.
+4. **CSS** : nouvelle règle = scopée (page flag `html.artis-page-*` ou conteneur) ;
+   `!important` seulement pour battre du style inline/`!important` Artis ;
+   **aucun nouveau** `backdrop-filter`, sélecteur universel ou `[style*=]`.
+5. **Données → Gemini** : tout nouvel envoi a un budget chiffré en chars, des URLs
+   sanitizées, et respecte le toggle « Partage pages ».
+6. **Pas de `setTimeout` en rafale** pour attendre un élément : préférer l'événement
+   ou l'observer one-shot ; si timeout quand même, max 2 re-passes commentées.
+7. **Jamais forcer `display`** sur un élément affiché/masqué par Artis (règle ERROR.md).
+8. **Versioning** : `ARTIS_VERSION` + `manifest.json` synchrones à chaque modif
+   visuelle + entrée CHANGELOG. (Candidat : script `bump-version.ps1` qui fait les 3.)
+9. **Mesurer avant d'optimiser** : DevTools Performance sur la page planning
+   (la plus lourde) avant/après ; pas d'optimisation spéculative.
+10. **Avant toute modif : lire `ERROR.md`** ; après toute erreur signalée : l'y consigner.
 
 ---
 
-## 🟠 S3. Persistance en clair de données sensibles
+## D. Sécurité — état (synthèse, détails dans git history)
 
-**Fichiers :** `giles.js` — `localStorage['giles_conversations']`, `sessionStorage['giles_pages']`, `sessionStorage['giles_active']`
+| Point | État |
+|-------|------|
+| Clé API en query string | ✅ corrigé — header `x-goog-api-key` |
+| Token session → Gemini | ✅ corrigé — URLs sanitizées avant stockage/envoi |
+| Permission `tabs`, jokers `*.artis.fr/.net` | ✅ retirés — hosts stricts |
+| Google Fonts (fuite IP) | ✅ polices bundlées localement |
+| Conversations localStorage | ✅ purge TTL 30 j ; pages en sessionStorage seulement |
+| `apigemini.txt` bundlé | ⚠️ **toléré en dev** (gitignored, hors `web_accessible_resources`). À EXCLURE de tout build distribué ; clé restreinte côté Google à prévoir |
+| Rédaction PII avant envoi Gemini | ❌ non fait (opt-out global via popup seulement) — point RGPD ouvert |
+| `innerHTML` rendu markdown | 🟢 échappé (`esc()`), balises contrôlées, pas de href/src dynamiques |
 
-- Conversations (questions + réponses, pouvant contenir des données métier) stockées **en clair dans `localStorage`** → persistent après fermeture, lisibles sur **poste partagé** par tout utilisateur du même profil navigateur.
-- `giles_pages` (texte intégral des pages) en `sessionStorage` clair.
-
-**Recommandations :**
-1. Bouton « purge à la déconnexion » / TTL sur les conversations.
-2. Ne pas persister le texte intégral des pages au-delà de la session (déjà sessionStorage — OK) ; éviter `localStorage` pour tout contenu métier.
-3. Documenter clairement à l'utilisateur ce qui est gardé en local.
-
----
-
-## 🟠 S4. Surface de contenu large (match patterns)
-
-**Fichier :** `manifest.json` `content_scripts.matches`
-
-- `*://*.artis.fr/*`, `*://*.artis.net/*`, `*://artis.digithall.org/*` : injection sur **tous sous-domaines** `.artis.fr`/`.artis.net` (potentiellement des hôtes non maîtrisés). `permissions: ["tabs"]` donne accès aux **URL de tous les onglets** (utilisé seulement pour `tabs.reload`).
-
-**Recommandations :**
-1. Restreindre `matches` aux hôtes réellement ciblés (l'app utilise `artis.digithall.org`). Retirer les jokers de sous-domaine si non nécessaires.
-2. Remplacer `"tabs"` par **`"activeTab"`** si seul l'onglet courant est rechargé → principe du moindre privilège.
-
----
-
-## 🟡 S5. Injection HTML via `innerHTML` (risque résiduel maîtrisé)
-
-**Fichier :** `giles.js` `addBubble` (l.253), `fmt`/`fmtInline` (l.92-104), `renderConvos` (l.375)
-
-- Le texte du **modèle** et le titre des conversations sont insérés via `innerHTML`.
-- 🟢 **Mitigé** : `fmt()` appelle `esc()` (échappe `& < > " '`) **avant** d'appliquer le markdown, qui ne génère que des balises contrôlées (`code/strong/u/del/em/h/li`), **sans** `href`, `src`, ni handlers. `renderConvos` échappe via `esc()`. → Pas de vecteur XSS direct identifié.
-
-**Recommandations (défense en profondeur) :**
-1. Préférer la construction par `createElement`/`textContent` pour le contenu dynamique, ou un assainisseur dédié.
-2. Tester des charges type ``[x](javascript:...)``, balises imbriquées, séquences `*`/`_` pathologiques pour confirmer l'absence de contournement des regex.
-
----
-
-## 🟡 S6. Clé/secret et logs
-
-- `console`/erreurs : vérifier qu'aucune réponse d'API contenant la clé ou le `detail` brut n'est loggée en clair (le `detail` est tronqué à 60-140 chars côté UI — OK).
-- 🟢 Aucune `eval`, `Function()`, ni chargement de script distant détecté. Aucune ressource JS externe (seules les **Google Fonts** via `@import` CSS — voir S7).
-
----
-
-## 🟡 S7. Ressources externes (CSS Google Fonts)
-
-**Fichiers :** `app-override.css`, `login-override.css`, `giles.css` — `@import url('https://fonts.googleapis.com/...')`
-
-- Chargement de polices depuis Google → **fuite d'IP/agent** vers Google à chaque page, et dépendance réseau externe (CSP de la page peut bloquer).
-
-**Recommandation :** **héberger les polices en local** (bundlées dans l'extension) → pas de requête tierce, fonctionne hors-ligne, meilleure confidentialité.
-
----
-
-## 🟢 Points positifs constatés
-
-- MV3, pas de `eval`/script distant, pas de `unsafe-inline` requis.
-- `host_permissions` limité à l'API Gemini.
-- `apigemini.txt` **hors** `web_accessible_resources`.
-- Échappement HTML systématique (`esc`) avant rendu markdown.
-- Aucune écriture réseau autre que l'API Gemini ; aucune télémétrie tierce.
-- Données de conversation **non** stockées côté service worker.
-
----
-
-## Synthèse sécurité priorisée
-
-| # | Sévérité | Risque | Action clé |
-|---|----------|--------|-----------|
-| S1 | 🔴 | Vol de la clé API (embarquée + clair) | Ne pas distribuer `apigemini.txt` ; clé utilisateur + restrictions Google |
-| S2 | 🔴 | Données ERP + token session → Google (RGPD) | Nettoyer URL (session/cKey), opt-in + consentement, rédaction PII |
-| S3 | 🟠 | Données sensibles en clair (localStorage) | TTL/purge, éviter localStorage pour le métier |
-| S4 | 🟠 | Surface/permissions trop larges | Restreindre `matches`, `tabs`→`activeTab` |
-| S5 | 🟡 | XSS (maîtrisé) | Durcir rendu (textContent), fuzzing markdown |
-| S6 | 🟡 | Secrets en logs | Vérifier absence de log de clé |
-| S7 | 🟡 | Fuite vers Google Fonts | Polices en local |
-
-**Priorité immédiate :** S2 (nettoyage du `session=` envoyé à Gemini — fuite active de jeton) puis S1 (clé embarquée).
-
-> Audit en lecture seule. Dire quels points corriger — S2 (strip token URL) et S1 sont des correctifs rapides.
+**Reste à faire sécurité :** build de release sans `apigemini.txt` ; (optionnel)
+rédaction emails/téléphones avant envoi à Gemini.

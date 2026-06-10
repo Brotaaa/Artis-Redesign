@@ -1,8 +1,21 @@
-﻿# Artis Login Enhancer — CLAUDE.md
+﻿# Artis Redesign — CLAUDE.md
 
-## 🛑 VÉRIFIER `error.md` AVANT TOUTE MODIF
+Docs du repo : `ERROR.md` (erreurs à ne plus refaire) · `AUDIT.md` (perf/sécu + plan d'optimisation) · `README.md` (public).
 
-**RÈGLE PERMANENTE :** Avant chaque modification, lire `error.md` (racine projet) pour ne pas répéter une erreur déjà signalée. Quand l'utilisateur signale une erreur, l'ajouter à `error.md` immédiatement.
+## 🛑 VÉRIFIER `ERROR.md` AVANT TOUTE MODIF
+
+**RÈGLE PERMANENTE :** Avant chaque modification, lire `ERROR.md` (racine projet) pour ne pas répéter une erreur déjà signalée. Quand l'utilisateur signale une erreur, l'ajouter à `ERROR.md` immédiatement.
+
+## ⚡ RÈGLES D'OR PERF (détail + plan dans `AUDIT.md` §C)
+
+À respecter dans **tout nouveau code** :
+1. Jamais `querySelectorAll('*')` → cibler `[style]`, classe ou id précis.
+2. Observer = batch rAF + `disconnect()` pendant nos écritures + portée minimale ; one-shot → préférer un événement (`focusin`, `load`…).
+3. Animation = pause `document.hidden` + fps plafonné + couches statiques pré-rendues.
+4. CSS nouveau = scopé (`html.artis-page-*` ou conteneur) ; `!important` seulement contre style inline/`!important` Artis ; aucun nouveau `backdrop-filter` / sélecteur universel / `[style*=]`.
+5. Donnée → Gemini = budget chars chiffré + URLs sanitizées + respect du toggle « Partage pages ».
+6. Pas de `setTimeout` en rafale pour attendre un élément (max 2 re-passes commentées).
+7. Mesurer (DevTools Performance, page planning) avant/après toute optimisation.
 
 ## ⚙️ MAINTENANCE AUTO DE CE FICHIER
 
@@ -13,7 +26,7 @@ Dès qu'un nouvel élément est traité, tenir ce CLAUDE.md à jour automatiquem
 - **Nouvelle classe/sélecteur clé** découverte (ex: `#thumbnail`, `.bg-blue`) → lexique + pièges.
 - **Nouveau piège/comportement** → section « Pièges connus ».
 - Convertir dates relatives en absolues. Pas de doublons : mettre à jour la ligne existante plutôt que dupliquer.
-- **À chaque patch/modif visuelle** : incrémenter `ARTIS_VERSION` + `manifest.json version` (synchros) ET ajouter une entrée en tête de `CHANGELOG` dans `app-content.js` (bouton Version sidebar `#artis-version-btn` affiche ces notes dans un modal).
+- **À chaque patch/modif visuelle** : incrémenter `ARTIS_VERSION` + `manifest.json version` (synchros) ET ajouter une entrée en tête de `CHANGELOG` dans `app-content.js`. (Le bouton Version sidebar `#artis-version-btn` ouvre le repo GitHub depuis v1.9.15 ; AUDIT.md A2 propose de déplacer ce journal vers un `CHANGELOG.md` — si fait, mettre cette règle à jour.)
 
 ---
 
@@ -33,8 +46,8 @@ Base : `https://artis.digithall.org/ArtisWebDigitInvest/`
 
 | Page | URL (relative à la base) | Description | Traité |
 |------|--------------------------|-------------|--------|
-| Login SSO Bureau Mobile | `composants/login/sso/BM.action` | Page de connexion SSO. Erreur possible « accès simultané ». | Glassmorphism dark, canvas animé, bouton fluide, password toggle, watermark JusteJohn bas-droite |
-| Login déconnecté | `composants/login/sso/loggedOut.action?typeLicence=BM` | Page après logout. | Même thème login + watermark `justejohn.png` |
+| Login SSO Bureau Mobile | `composants/login/sso/BM.action` | Page de connexion SSO. Erreur possible « accès simultané ». | Glassmorphism dark, canvas animé, bouton fluide, password toggle, logo JusteJohn haut-gauche (watermark bas-droite retiré v1.9.16) |
+| Login déconnecté | `composants/login/sso/loggedOut.action?typeLicence=BM` | Page après logout. | Même thème login |
 | Accueil / Visualiser entrée | `composants/commun/accueil/entreeVisualiser.action` | Page d'accueil (favoris, carte profil). Body flag JS `html.artis-page-entree`. | Bande vide aside-secondary masquée ; carte profil `#thumbnail` re-thémée ; tooltips z-index relevé |
 | Planning | `composants/ccPlanningV2/...` (page `body.page-ccPlanningV2`) | Planning emploi du temps. Blocs `.planning-event`. | Grille dark, blocs harmonisés + hover zoom |
 | Workflow Manager | `composants/workflow/ccWorkflowManager/submit.action` | Tâches/workflow, gros tableaux. | Tables dark, boutons toolbar dark |
@@ -356,7 +369,7 @@ table.table-grid tbody tr td { border-color: rgba(99,102,241,0.1) !important; }
 
 ## Typo
 
-- **Font** : `Plus Jakarta Sans` (Google Fonts) — friendly, modern, SaaS
+- **Font** : `Plus Jakarta Sans` (bundlée localement, `fonts/`) — friendly, modern, SaaS
 - Body : 0.875rem–1rem, line-height 1.5
 - Labels section : 0.68rem, uppercase, font-weight 700, letter-spacing 0.1em
 - Tabs actifs : font-weight 600
@@ -390,29 +403,31 @@ Partout où Artis utilise son bleu (`#00AEEF`, `bg-artis-default-color`, `text-a
 
 | Fichier | Rôle |
 |---------|------|
-| `extension/manifest.json` | Manifest V3 — URL, permissions storage, host Gemini, background, popup |
-| `extension/content.js` | Login : canvas + animations + toggle password + watermark + master switch |
+| `extension/manifest.json` | Manifest V3 — permissions minimales (`storage`, `notifications`), 2 hosts, background, popup |
+| `extension/content.js` | Login : canvas + animations + toggle password + master switch |
 | `extension/login-override.css` | Login : glassmorphism dark |
-| `extension/app-content.js` | App : canvas + nuclear CSS + observer + toggle theme/version + master switch |
-| `extension/app-override.css` | App : thème complet |
-| `extension/giles.js` | Gilles : UI pop-up IA (chat, mémoire 5, onglet Conversations) |
+| `extension/app-content.js` | App : canvas + nuclear CSS + observer + toggle theme/version + Reformuler + suivi DIT + CHANGELOG + master switch |
+| `extension/app-override.css` | App : thème complet (~3000 lignes — scoper les nouvelles règles, voir règles perf) |
+| `extension/giles.js` | Gilles : UI pop-up IA (chat, mémoire 5, onglet Conversations, capture pages) |
 | `extension/giles.css` | Gilles : styles (glass, light mode, responsive) |
-| `extension/giles-bg.js` | Service worker : appels Gemini, charge clé + base de connaissance |
+| `extension/giles-bg.js` | Service worker : appels Gemini (fallback multi-modèles), clé, base de connaissance, notifications |
 | `extension/prompts/giles-system-prompt.txt` | Préprompt système de Gilles |
-| `extension/artis.txt` + `ressources.md` | Base de connaissance (bundlée depuis `datatxt/`) |
-| `extension/apigemini.txt` | Clé API Gemini (gitignored, non web-accessible) |
-| `extension/fonts/` | Polices locales (Plus Jakarta Sans, Space Grotesk, DM Sans — woff2 latin/latin-ext) + `fonts.css` chargé via manifest. Plus de requête Google Fonts |
-| `extension/popup.html/.css/.js` | Popup : sliders activer/désactiver + réglage clé |
+| `extension/artis.txt` + `knowledge/` + `knowledge-index.json` | Base de connaissance : seed + 93 fichiers doc, récupération ciblée par question via l'index |
+| `extension/apigemini.txt` | Clé API Gemini (gitignored, non web-accessible) — à EXCLURE de tout build distribué |
+| `extension/fonts/` | Polices locales (Plus Jakarta Sans, Space Grotesk, DM Sans — woff2) + `fonts.css` via manifest. Aucune requête Google Fonts |
+| `extension/popup.html/.css/.js` | Popup : sliders (thème, sombre, Gilles, partage pages, notifs, version) + clé API + pastille état API |
 | `sync-knowledge.ps1` | Re-copie `datatxt/*` → `extension/` (maj connaissance) |
 
 ### Gilles — assistant IA
 
-- **Modèle** : Gemini `gemini-2.0-flash`, appelé depuis le **service worker** (`giles-bg.js`) → évite CORS/CSP de la page.
+- **Modèles** : `gemini-2.5-flash-lite` par défaut + fallback auto (`2.5-flash`, `flash-lite-latest`, `flash-latest`, `2.0-*`) sur quota/surcharge/indispo. Appelés depuis le **service worker** (`giles-bg.js`) → évite CORS/CSP de la page. Clé en header `x-goog-api-key`.
 - **Clé API** : `chrome.storage.local['giles_api_key']` (popup) sinon parsée depuis `apigemini.txt`.
-- **Connaissance** : `artis.txt` + `ressources.md` concaténés dans `systemInstruction` avec le préprompt.
+- **Connaissance** : `artis.txt` (seed) + fichiers `knowledge/` sélectionnés par scoring de la question via `knowledge-index.json` — budget 50k chars, le tout en `systemInstruction` avec le préprompt.
+- **Pages visitées** : capture `innerText` live mémoïsée (TTL 4s), sessionStorage, budget 40k chars, URLs sanitizées (`session/cKey/cStatus=***`). Toggle popup « Partage pages ».
 - **Mémoire active** : 5 derniers messages ; vidée à chaque rechargement complet (sessionStorage).
-- **Conversations** : `localStorage['giles_conversations']` (PC uniquement). Onglet : voir / supprimer / tout vider.
+- **Conversations** : `localStorage['giles_conversations']` (PC uniquement), purge TTL 30 j. Onglet : voir / supprimer / tout vider.
 - **Slider on/off** : popup écrit `artis_enabled` / `giles_enabled` ; bascule thème = `location.reload()`.
+- **Reformuler (CR)** : `app-content.js` envoie `GILLES_ASK` avec `systemOverride` (prompt CR dédié) via port long-lived `gilles-ask` ; contexte DIT lu par `getDitContext()`.
 
 ### ⚠️ Lecture disque
 
