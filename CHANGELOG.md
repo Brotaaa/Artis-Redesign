@@ -3,6 +3,9 @@
 > Journal des versions. Le code ne garde que `ARTIS_VERSION` (`app-content.js`) ;
 > toute nouvelle version = entrée ICI + bump `ARTIS_VERSION` + `manifest.json`.
 
+## 1.9.52 — 2026-06-10
+- Planning : le volet menu ne redimensionne plus brutalement le planning — overlay fixe qui glisse au survol (même animation fluide que les autres pages), le contenu ne bouge plus du tout
+
 ## 1.9.51 — 2026-06-10
 - Éditeur compte rendu : toolbar TinyMCE affichée EN PERMANENCE (plus seulement au focus) — rendu forcé au chargement + display maintenu
 - Bouton Reformuler toujours présent dans la barre dès le chargement de la page

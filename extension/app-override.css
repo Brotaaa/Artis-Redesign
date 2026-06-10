@@ -765,7 +765,7 @@ body > form footer {
 
 /* État fermé par défaut : panel ENTIÈREMENT glissé à gauche (caché derrière
    la sidebar grâce à son z-index plus élevé). Pur slide, pas de pop. */
-html:not(.artis-page-planning) .aside-secondary {
+.aside-secondary {
   transform: translateX(-100%) !important;
   opacity: 1 !important;
   pointer-events: none !important;
@@ -773,7 +773,7 @@ html:not(.artis-page-planning) .aside-secondary {
 }
 
 /* Survol de la zone aside (icônes + panel) → le panel se déroule de gauche à droite */
-html:not(.artis-page-planning) .aside:hover .aside-secondary {
+.aside:hover .aside-secondary {
   transform: translateX(0) !important;
   opacity: 1 !important;
   pointer-events: auto !important;
@@ -784,19 +784,19 @@ html:not(.artis-page-planning) .aside:hover .aside-secondary {
 .aside-primary { position: relative !important; z-index: 60 !important; }
 
 /* Contenu interne (search + items) entre en cascade organique */
-html:not(.artis-page-planning) .aside:hover .aside-secondary .global-search-button-container {
+.aside:hover .aside-secondary .global-search-button-container {
   animation: artis-flyout-fade 0.55s cubic-bezier(0.16,1,0.3,1) 0.10s both !important;
 }
-html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item {
+.aside:hover .aside-secondary .menu > .menu-item {
   animation: artis-flyout-fade 0.55s cubic-bezier(0.16,1,0.3,1) both !important;
 }
-html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(1) { animation-delay: 0.14s !important; }
-html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(2) { animation-delay: 0.19s !important; }
-html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(3) { animation-delay: 0.24s !important; }
-html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(4) { animation-delay: 0.29s !important; }
-html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(5) { animation-delay: 0.34s !important; }
-html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(6) { animation-delay: 0.39s !important; }
-html:not(.artis-page-planning) .aside:hover .aside-secondary .menu > .menu-item:nth-child(n+7) { animation-delay: 0.44s !important; }
+.aside:hover .aside-secondary .menu > .menu-item:nth-child(1) { animation-delay: 0.14s !important; }
+.aside:hover .aside-secondary .menu > .menu-item:nth-child(2) { animation-delay: 0.19s !important; }
+.aside:hover .aside-secondary .menu > .menu-item:nth-child(3) { animation-delay: 0.24s !important; }
+.aside:hover .aside-secondary .menu > .menu-item:nth-child(4) { animation-delay: 0.29s !important; }
+.aside:hover .aside-secondary .menu > .menu-item:nth-child(5) { animation-delay: 0.34s !important; }
+.aside:hover .aside-secondary .menu > .menu-item:nth-child(6) { animation-delay: 0.39s !important; }
+.aside:hover .aside-secondary .menu > .menu-item:nth-child(n+7) { animation-delay: 0.44s !important; }
 
 @keyframes artis-flyout-fade {
   from { opacity: 0; transform: translateX(-14px); }
@@ -824,18 +824,18 @@ html.artis-page-planning .global-search-button-shortcut {
   display: none !important;
 }
 
-/* Page planning : le panel menu est DOCKÉ (pas un flyout) → le remettre
-   dans le flux pour qu'il ne dépasse pas / ne déborde pas derrière le contenu.
-   (L'overlay absolu reste actif sur les pages type accueil/favoris.) */
+/* Page planning : panel en overlay FIXED (pleine hauteur écran, au-dessus
+   du contenu) → le planning ne se redimensionne plus à l'ouverture (le
+   docké « relative » provoquait un reflow instantané et brutal). Le fixed
+   est indépendant de la hauteur du parent .aside → ne « dépasse » plus
+   derrière le contenu comme l'ancien absolute (piège v1.9.14).
+   Ouverture = même flyout fluide au survol que les autres pages. */
 html.artis-page-planning .aside-secondary {
-  position: relative !important;
-  left: auto !important;
-  top: auto !important;
-  height: auto !important;
-  z-index: auto !important;
-  transform: none !important;
-  opacity: 1 !important;
-  animation: none !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: var(--artis-primary-w, 70px) !important;
+  height: 100vh !important;
+  z-index: 50 !important;
 }
 html.artis-page-planning #kt_aside_workspace,
 html.artis-page-planning #kt_aside_workspace > div,

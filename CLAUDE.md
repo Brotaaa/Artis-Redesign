@@ -100,7 +100,7 @@ L'utilisateur décrit les éléments en langage courant + donne souvent un **XPa
 - Ces menus n'ont pas toujours `.dropdown-menu` → couvrir aussi `.popover`, `.tippy-box`, `.ui-menu`, `[role="listbox/menu"]`.
 
 ### Pièges connus
-- `.aside-secondary` : **flottant** (`position:absolute`) sur accueil/favoris (sinon décale le tableau), MAIS **docké** (`position:relative`) sur la page planning (`html.artis-page-planning`) sinon le panel **dépasse derrière le contenu**. Deux comportements selon la page.
+- `.aside-secondary` : **flottant partout** depuis v1.9.52 — `position:absolute` (pages standard) / `position:fixed` pleine hauteur (planning, indépendant de la hauteur du parent `.aside` → ne dépasse plus derrière le contenu, piège historique v1.9.14). Le docké `relative` sur planning provoquait un **reflow brutal** du planning à chaque ouverture. Même flyout fluide au survol sur toutes les pages.
 - Tables vides → l'élément `<table>` doit avoir fond dark explicite (cellules transparentes laissent voir wrapper blanc).
 - Blocs planning : couleurs Artis = **données métier** (nature/type) → ne pas aplatir, juste harmoniser (saturation/glow/voile).
 - Metronic toggle les sous-menus via classes `.show/.here/.hover` → animer avec `grid-template-rows 0fr→1fr`.
