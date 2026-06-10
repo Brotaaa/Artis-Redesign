@@ -1182,6 +1182,15 @@ html.artis-page-entree .aside-secondary .tab-pane:empty {
   margin-bottom: 0 !important;
 }
 
+/* Bandeau STICKY (titre intervention + onglets Dit/Compte-rendu/Tâches…) :
+   doit rester OPAQUE — un sticky transparent laisse le contenu apparaître
+   derrière le titre au scroll (régression du strip global de fonds). */
+.page-data-header.sticky-top {
+  background: linear-gradient(160deg, #1b1b42 0%, #15153a 100%) !important;
+  border-bottom: 1px solid rgba(99,102,241,0.3) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35) !important;
+}
+
 .page-header h1, .page-header h2, .page-header h3 {
   color: var(--a-text) !important;
   font-family: 'Plus Jakarta Sans', sans-serif !important;

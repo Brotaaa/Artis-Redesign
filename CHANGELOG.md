@@ -3,6 +3,9 @@
 > Journal des versions. Le code ne garde que `ARTIS_VERSION` (`app-content.js`) ;
 > toute nouvelle version = entrée ICI + bump `ARTIS_VERSION` + `manifest.json`.
 
+## 1.9.50 — 2026-06-10
+- Bandeau sticky des pages intervention (titre + onglets Dit/Compte-rendu…) : fond dark opaque — n'était plus que transparent, le contenu apparaissait derrière le titre au scroll
+
 ## 1.9.49 — 2026-06-10
 - Éditeur compte rendu : toolbar TinyMCE remontée AU-DESSUS du bloc (ne chevauche plus le texte) et centrée dessus, suit le scroll/resize
 - Bouton Reformuler remonté si TinyMCE recrée la barre (mount à chaque focus, plus seulement le premier)

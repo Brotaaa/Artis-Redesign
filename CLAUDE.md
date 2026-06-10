@@ -85,6 +85,7 @@ L'utilisateur décrit les éléments en langage courant + donne souvent un **XPa
 | « la preview pour mettre en gras » / barre gras/italique sur le compte rendu | Toolbar inline TinyMCE 6.8 (flottante, ancrée au-dessus de l'éditeur, body-level) | `.tox.tox-tinymce-inline` > `.tox-editor-header` ; boutons `.tox-tbtn` ; popups `.tox-pop/.tox-menu/.tox-collection` (dans `.tox-tinymce-aux`) ; éditeur = `.editor-artis-inline#ita_messclt` (page entreeAjouter ccCrit) — thémée dark solide v1.9.44 ; bouton `#artis-reformuler-btn` monté dedans (`.tox-toolbar__primary`, v1.9.45) |
 | « bloc détail de la demande » / contexte DIT (Client, Site, Demandeur, Date, Détail) | Carte récap DIT en haut de la saisie CR | `#s_detail_dit > .card-body` — `.form-group` (`label` + `.text-value`), lu par `getDitContext()` pour le bouton Reformuler |
 | « ma page d'accueil » (pop-up) | Modal widgets grid-stack (Favoris, profil, checklist, logo) | `#my-home-page` > `.modal-body.modal-max-height` (plafonnée 75vh → pleine hauteur v1.9.47) ; grille `#widget_container_modal.grid-stack`, widgets `.grid-stack-item` |
+| « bandeau titre intervention » (titre + badges TOP 30/INFOGERANCE + onglets Dit/Compte-rendu) | Header sticky des pages intervention | `.page-data-header.sticky-top` > `.page-header.page-header-default` > `.page-header-content` ; badges `.badge.bg-green/.bg-indigo` — fond opaque forcé v1.9.50 |
 
 ### Notes comportement utilisateur
 - Donne souvent **XPath** au lieu de classe → utiliser pour localiser, mais cibler par **classe/id stable** dans le CSS (XPath `div[12]` = index fragile).
@@ -106,6 +107,7 @@ L'utilisateur décrit les éléments en langage courant + donne souvent un **XPa
 - Polices locales : tout `.woff2` chargé par la page doit être dans `web_accessible_resources` du manifest (`fonts/*.woff2`), sinon bloqué.
 - Permission `tabs` retirée (v1.9.43) : `tabs.query({url})` marche via la host permission `artis.digithall.org` ; `reload/update` n'ont jamais eu besoin de permission.
 - MutationObserver (app-content) : traitement batché par frame + `disconnect()` pendant nos écritures — ne pas remettre de strip synchrone dans le callback (boucle de rétroaction).
+- Éléments `position: sticky` (ex `.page-data-header.sticky-top`) : le strip global de fonds les rend **transparents** → contenu visible derrière au scroll. Tout sticky doit recevoir un fond dark **opaque** explicite.
 - Toolbar TinyMCE inline : créée **au premier focus** de l'éditeur (pas au load) → tout bouton injecté dedans n'apparaît qu'après clic dans la zone de texte. Sur un bouton custom dans la barre : `mousedown → preventDefault()` obligatoire, sinon blur de l'éditeur = TinyMCE cache la barre avant le `click`.
 
 ---
