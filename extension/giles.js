@@ -44,13 +44,16 @@
   let currentConvId  = null;
   let busy           = false;
   let mounted        = false;
+  let pageShare      = true; // partage du contenu des pages avec Gemini (popup)
 
   /* ── Stockage local (robuste) ───────────────────────────── */
+  const CONVO_TTL_MS = 30 * 24 * 3600 * 1000;   // purge auto des conversations > 30 jours
   function loadConvos() {
     try {
       const raw = localStorage.getItem(LS_CONVOS);
       const arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr : [];
+      if (!Array.isArray(arr)) return [];
+      return arr.filter(c => c && (!c.ts || Date.now() - c.ts < CONVO_TTL_MS));
     } catch (e) { return []; }   // corrompu → on repart propre
   }
   function saveConvos(list) {
@@ -190,6 +193,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
             </button>
           </form>
+          <div class="giles-privacy">Le contenu des pages visitées est envoyé à Google Gemini pour répondre (désactivable dans la popup).</div>
         </div>
 
         <div class="giles-view" id="giles-view-convos" hidden>
@@ -290,8 +294,23 @@
     if (l) l.remove();
   }
 
-  /* ── Capture du texte de la page (DOM entier, hors-écran inclus) ── */
+  /* ── Nettoyage URL : jamais de token de session/clé vers un tiers ── */
+  function sanitizeUrl(u) {
+    return String(u || '').replace(/([?&])(session|cKey|cStatus)=[^&#]*/gi, '$1$2=***');
+  }
+
+  /* ── Capture du texte de la page (DOM entier, hors-écran inclus) ──
+     Mémoïsée : recapture seulement si la page a changé ou cache > 4 s
+     (le clone/innerText force un reflow → coûteux à chaque envoi). */
+  let _capCache = null;
+  const CAP_TTL_MS = 4000;
   function capturePageText() {
+    const key = pageKey();
+    const count = document.body.childElementCount;
+    const now = Date.now();
+    if (_capCache && _capCache.key === key && _capCache.count === count &&
+        now - _capCache.ts < CAP_TTL_MS) return _capCache.cap;
+
     /* IMPORTANT : lire le DOM LIVE (innerText respecte la visibilité → seul
        l'onglet actif est capturé). Le clone détaché ignorait display:none et
        renvoyait du texte erroné (ex : tableau « Aucune donnée » d'un onglet caché). */
@@ -305,7 +324,9 @@
     } catch (e) { txt = (document.body.textContent || '').trim(); }
     ours.forEach((n, i) => { n.style.display = prev[i] || ''; });
     if (txt.length > PAGE_MAX) txt = txt.slice(0, PAGE_MAX) + '\n…[texte tronqué]';
-    return { url: location.href, title: document.title, text: txt };
+    const cap = { url: sanitizeUrl(location.href), title: document.title, text: txt };
+    _capCache = { key, count, ts: now, cap };
+    return cap;
   }
 
   /* ── Mémoire des pages visitées (sessionStorage, locale) ──────
@@ -363,9 +384,13 @@
     const history = activeMessages.slice(-MEM_LIMIT).map(m => ({ role: m.role, text: m.text }));
 
     /* Rafraîchit la page courante puis envoie TOUTES les pages mémorisées
-       (Planning + autres) pour que Gilles s'en souvienne entre les pages. */
-    storeCurrentPage();
-    const pages = getStoredPages();
+       (Planning + autres) pour que Gilles s'en souvienne entre les pages.
+       Désactivable dans la popup (rien de la page ne part vers Gemini). */
+    let pages = [];
+    if (pageShare) {
+      storeCurrentPage();
+      pages = getStoredPages();
+    }
 
     chrome.runtime.sendMessage({ type: 'GILES_ASK', history, pages }, resp => {
       hideLoader();
@@ -523,8 +548,13 @@
     if (mounted) return;
     mounted = true;
     resetActive();          // mémoire active vidée à chaque chargement complet
-    storeCurrentPage();                         // mémorise la page courante
-    setTimeout(storeCurrentPage, 1500);         // re-capture si la page se rend tard (tables, planning…)
+    chrome.storage.local.get('giles_page_share', s => {
+      pageShare = !s || s.giles_page_share !== false;   // défaut = activé
+      if (pageShare) {
+        storeCurrentPage();                     // mémorise la page courante
+        setTimeout(storeCurrentPage, 1500);     // re-capture si la page se rend tard (tables, planning…)
+      }
+    });
     buildUI();
     injectSidebarButton();
     checkApi();             // pastille état API (ping léger, sans quota)
@@ -549,6 +579,10 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if ('artis_enabled' in changes || 'giles_enabled' in changes) applyEnabled();
+    if ('giles_page_share' in changes) {
+      pageShare = changes.giles_page_share.newValue !== false;
+      if (!pageShare) { try { sessionStorage.removeItem(SS_PAGES); } catch (e) {} }
+    }
   });
 
   /* ── Init ───────────────────────────────────────────────── */

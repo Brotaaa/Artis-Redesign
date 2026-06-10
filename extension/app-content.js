@@ -12,7 +12,9 @@
     document.body.insertBefore(canvas, document.body.firstChild);
 
     const ctx = canvas.getContext('2d');
-    let W, H, particles, animId;
+    let W, H, particles, animId = null, lastTs = 0;
+    const FRAME_MS = 33;                                  // ~30 fps, suffisant pour un fond
+    const staticLayer = document.createElement('canvas'); // dégradé + orbes + grille pré-rendus
 
     const ORBS = [
       { x: 0.05, y: 0.3,  r: 0.25, color: 'rgba(99,102,241,0.12)' },
@@ -21,10 +23,37 @@
       { x: 0.8,  y: 0.95, r: 0.22, color: 'rgba(99,102,241,0.08)'  },
     ];
 
+    /* Couches statiques rendues UNE fois par resize (plus jamais par frame) */
+    function renderStatic() {
+      staticLayer.width = W; staticLayer.height = H;
+      const s = staticLayer.getContext('2d');
+      const grad = s.createLinearGradient(0, 0, W * 0.5, H);
+      grad.addColorStop(0,   '#161634');
+      grad.addColorStop(0.5, '#1b1b40');
+      grad.addColorStop(1,   '#181838');
+      s.fillStyle = grad;
+      s.fillRect(0, 0, W, H);
+      ORBS.forEach(orb => {
+        const ox = orb.x * W, oy = orb.y * H, rr = orb.r * Math.min(W, H);
+        const g = s.createRadialGradient(ox, oy, 0, ox, oy, rr);
+        g.addColorStop(0, orb.color);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        s.fillStyle = g;
+        s.beginPath(); s.arc(ox, oy, rr, 0, Math.PI * 2); s.fill();
+      });
+      s.fillStyle = 'rgba(99,102,241,0.06)';
+      for (let x = 40; x < W; x += 40)
+        for (let y = 40; y < H; y += 40) {
+          s.beginPath(); s.arc(x, y, 0.8, 0, Math.PI * 2); s.fill();
+        }
+    }
+
     function resize() {
       W = canvas.width  = window.innerWidth;
       H = canvas.height = window.innerHeight;
+      renderStatic();
       initParticles();
+      ctx.drawImage(staticLayer, 0, 0);   // affichage immédiat même si animation en pause
     }
 
     function initParticles() {
@@ -39,40 +68,50 @@
       }));
     }
 
+    /* Connexions via grille spatiale (buckets) — évite le O(n²) complet */
+    const LINK_D = 100;
+    function drawLinks() {
+      const cols = Math.ceil(W / LINK_D) + 2;
+      const buckets = new Map();
+      particles.forEach((p, i) => {
+        const k = (((p.x / LINK_D) | 0) + 1) + (((p.y / LINK_D) | 0) + 1) * cols;
+        let b = buckets.get(k);
+        if (!b) { b = []; buckets.set(k, b); }
+        b.push(i);
+      });
+      const OFFS = [0, 1, cols - 1, cols, cols + 1];   // demi-voisinage → chaque paire vue 1 fois
+      ctx.lineWidth = 0.4;
+      buckets.forEach((cell, key) => {
+        for (const off of OFFS) {
+          const other = off === 0 ? cell : buckets.get(key + off);
+          if (!other) continue;
+          for (let a = 0; a < cell.length; a++) {
+            const i = cell[a];
+            for (let b2 = (off === 0 ? a + 1 : 0); b2 < other.length; b2++) {
+              const j = other[b2];
+              const dx = particles[i].x - particles[j].x;
+              const dy = particles[i].y - particles[j].y;
+              const d2 = dx * dx + dy * dy;
+              if (d2 < LINK_D * LINK_D) {
+                const d = Math.sqrt(d2);
+                ctx.strokeStyle = `rgba(99,102,241,${0.12 * (1 - d / LINK_D)})`;
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.stroke();
+              }
+            }
+          }
+        }
+      });
+    }
+
     function draw(ts) {
       animId = requestAnimationFrame(draw);
+      if (ts - lastTs < FRAME_MS) return;   // throttle 30 fps
+      lastTs = ts;
 
-      const grad = ctx.createLinearGradient(0, 0, W * 0.5, H);
-      grad.addColorStop(0,   '#161634');
-      grad.addColorStop(0.5, '#1b1b40');
-      grad.addColorStop(1,   '#181838');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W, H);
-
-      const t = ts * 0.00025;
-      ORBS.forEach((orb, i) => {
-        const ox = (orb.x + Math.sin(t + i * 1.5) * 0.05) * W;
-        const oy = (orb.y + Math.cos(t + i * 1.1) * 0.05) * H;
-        const rr = orb.r * Math.min(W, H);
-        const g = ctx.createRadialGradient(ox, oy, 0, ox, oy, rr);
-        g.addColorStop(0, orb.color);
-        g.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(ox, oy, rr, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      /* Subtle dot grid */
-      ctx.fillStyle = 'rgba(99,102,241,0.06)';
-      const spacing = 40;
-      for (let x = spacing; x < W; x += spacing) {
-        for (let y = spacing; y < H; y += spacing) {
-          ctx.beginPath();
-          ctx.arc(x, y, 0.8, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
+      ctx.drawImage(staticLayer, 0, 0);
 
       particles.forEach(p => {
         p.x += p.vx;
@@ -87,32 +126,19 @@
         ctx.fill();
       });
 
-      ctx.lineWidth = 0.4;
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 100) {
-            ctx.strokeStyle = `rgba(99,102,241,${0.12 * (1 - d / 100)})`;
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.stroke();
-          }
-        }
-      }
+      drawLinks();
     }
+
+    function start() { if (animId === null) animId = requestAnimationFrame(draw); }
+    function stop()  { if (animId !== null) { cancelAnimationFrame(animId); animId = null; } }
 
     resize();
     window.addEventListener('resize', resize);
 
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mq.matches) {
-      draw(0);
-      cancelAnimationFrame(animId);
-    } else {
-      requestAnimationFrame(draw);
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      start();
+      /* Onglet masqué → animation en pause (CPU/batterie) */
+      document.addEventListener('visibilitychange', () => { document.hidden ? stop() : start(); });
     }
   }
 
@@ -350,8 +376,14 @@
     }
   }
 
-  function stripAllWhite(root) {
-    root.querySelectorAll('*').forEach(stripWhiteBg);
+  /* Passe combinée blanc + bleu Artis : UN seul parcours du sous-arbre */
+  function stripInline(el) {
+    stripWhiteBg(el);
+    stripArtisBlueBg(el);
+  }
+  function stripAllInline(root) {
+    const all = root.querySelectorAll('*');
+    for (const el of all) stripInline(el);
   }
 
   /* ── 4bis. Préfixe d'état sur les blocs planning (✅ crité / ❌ non crité) ── */
@@ -410,61 +442,86 @@
     if (root && root.classList && root.classList.contains('planning-event')) applyStateEmoji(root);
   }
 
-  /* ── 5. Observe DOM for dynamic panels + new table rows ──── */
+  /* ── 5. Observe DOM for dynamic panels + new table rows ────
+     Mutations ACCUMULÉES puis traitées en un seul lot par frame (rAF).
+     Pendant nos propres écritures de style, l'observer est déconnecté
+     → casse la boucle de rétroaction (strip → mutation → strip…). */
   function observeDOM() {
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(m => {
-        m.addedNodes.forEach(node => {
-          if (node.nodeType !== 1) return;
-          /* Panels: add animation */
-          if (node.classList && (
-            node.classList.contains('dropdown-menu') ||
-            node.classList.contains('modal') ||
-            node.classList.contains('swal2-container')
-          )) {
-            node.style.animation = 'artis-panel-in 0.25s cubic-bezier(0.22,1,0.36,1) both';
-          }
-          /* Loader custom dans écrans chargement ajoutés */
-          if (node.classList && (node.classList.contains('box-rotate-loader') ||
-              node.classList.contains('chgtContent') || node.classList.contains('divChargement') ||
-              (node.querySelector && node.querySelector('.box-rotate-loader, .chgtContent')))) {
-            injectLoader(node);
-          }
-          /* Strip white + Artis blue from any newly added subtree */
-          stripWhiteBg(node);
-          stripArtisBlueBg(node);
-          if (node.children && node.children.length) {
-            stripAllWhite(node);
-            stripAllArtisBlueBg(node);
-          }
-          /* Blocs planning ajoutés dynamiquement → préfixe d'état */
-          if (node.classList && node.classList.contains('planning-event')) applyStateEmoji(node);
-          else if (node.querySelector && node.querySelector('.planning-event')) tagPlanningBlocks(node);
-        });
-
-        /* Also handle attribute changes (inline style mutations on existing nodes) */
-        if (m.type === 'attributes' && m.attributeName === 'style') {
-          stripWhiteBg(m.target);
-          stripArtisBlueBg(m.target);
-        }
-        /* Changement d'état d'un bloc (classe / data / contenu) → maj emoji */
-        if (m.type === 'attributes' &&
-            (m.attributeName === 'class' || m.attributeName === 'data-idinterrealisee')) {
-          const evt = m.target.closest ? m.target.closest('.planning-event') : null;
-          if (evt) applyStateEmoji(evt);
-        }
-        if (m.type === 'childList' && m.target.closest) {
-          const evt = m.target.closest('.planning-event');
-          if (evt) applyStateEmoji(evt);
-        }
-      });
-    });
-    observer.observe(document.body, {
+    const OBS_OPTS = {
       childList: true,
       subtree: true,
       attributes: true,
       attributeFilter: ['style', 'class', 'data-idinterrealisee'],
+    };
+    let pendingNodes = new Set();   // nœuds ajoutés
+    let pendingStyle = new Set();   // styles inline modifiés
+    let pendingEvts  = new Set();   // blocs planning à re-taguer
+    let scheduled = false;
+    let observer;
+
+    function schedule() {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(processBatch);
+    }
+
+    function processBatch() {
+      scheduled = false;
+      const nodes  = pendingNodes; pendingNodes = new Set();
+      const styled = pendingStyle; pendingStyle = new Set();
+      const evts   = pendingEvts;  pendingEvts  = new Set();
+
+      observer.disconnect();   // nos écritures ne re-déclenchent pas l'observer
+
+      nodes.forEach(node => {
+        if (!node.isConnected) return;
+        /* Panels: add animation */
+        if (node.classList && (
+          node.classList.contains('dropdown-menu') ||
+          node.classList.contains('modal') ||
+          node.classList.contains('swal2-container')
+        )) {
+          node.style.animation = 'artis-panel-in 0.25s cubic-bezier(0.22,1,0.36,1) both';
+        }
+        /* Loader custom dans écrans chargement ajoutés */
+        if (node.classList && (node.classList.contains('box-rotate-loader') ||
+            node.classList.contains('chgtContent') || node.classList.contains('divChargement') ||
+            (node.querySelector && node.querySelector('.box-rotate-loader, .chgtContent')))) {
+          injectLoader(node);
+        }
+        /* Strip white + Artis blue : une seule passe combinée */
+        stripInline(node);
+        if (node.children && node.children.length) stripAllInline(node);
+        /* Blocs planning ajoutés dynamiquement → préfixe d'état */
+        if (node.classList && node.classList.contains('planning-event')) applyStateEmoji(node);
+        else if (node.querySelector && node.querySelector('.planning-event')) tagPlanningBlocks(node);
+      });
+
+      styled.forEach(el => { if (el.isConnected) stripInline(el); });
+      evts.forEach(evt => { if (evt.isConnected) applyStateEmoji(evt); });
+
+      observer.observe(document.body, OBS_OPTS);
+    }
+
+    observer = new MutationObserver(mutations => {
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          if (node.nodeType === 1) pendingNodes.add(node);
+        }
+        if (m.type === 'attributes') {
+          if (m.attributeName === 'style') pendingStyle.add(m.target);
+          else if (m.attributeName === 'class' || m.attributeName === 'data-idinterrealisee') {
+            const evt = m.target.closest ? m.target.closest('.planning-event') : null;
+            if (evt) pendingEvts.add(evt);
+          }
+        } else if (m.type === 'childList' && m.target.closest) {
+          const evt = m.target.closest('.planning-event');
+          if (evt) pendingEvts.add(evt);
+        }
+      }
+      if (pendingNodes.size || pendingStyle.size || pendingEvts.size) schedule();
     });
+    observer.observe(document.body, OBS_OPTS);
   }
 
   /* ── 6. Theme toggle button (dark ↔ light) ───────────────── */
@@ -538,8 +595,19 @@
   }
 
   /* ── 6b1. Changelog + bouton version ──────────────────────── */
-  const ARTIS_VERSION = '1.9.42';
+  const ARTIS_VERSION = '1.9.43';
   const CHANGELOG = [
+    { v: '1.9.43', d: '2026-06-10', notes: [
+      'Perf : canvas pré-rendu (grille/orbes statiques), pause onglet caché, 30 fps, connexions par buckets',
+      'Perf : MutationObserver batché par frame + déconnexion pendant nos écritures (fin des boucles)',
+      'Perf : balayage initial du DOM en un seul parcours ; capture page Gilles mémoïsée',
+      'Perf : artis.txt caché côté service worker, budget connaissance 80k → 50k chars, blur réduits',
+      'Sécu : token de session jamais envoyé à Gemini (URLs nettoyées), clé API en header (plus en URL)',
+      'Sécu : permission « tabs » retirée, extension limitée à artis.digithall.org',
+      'Sécu : polices bundlées en local (plus de requête Google Fonts), conversations purgées après 30 j',
+      'Popup : nouveau réglage « Partage pages → Gilles » (désactive l\'envoi du contenu des pages)',
+      'Nettoyage : code mort supprimé (showChangelog, injectWatermark)',
+    ]},
     { v: '1.9.42', d: '2026-06-10', notes: [
       'Login : boutons SSO / Entrer / i sur leur propre ligne pleine largeur — texte plus jamais coupé (« Entre »)',
       'Login : case « Rester connecté » centrée au-dessus des boutons',
@@ -815,40 +883,6 @@
     });
   }
 
-  function showChangelog() {
-    if (document.getElementById('artis-changelog-overlay')) return;
-    const overlay = document.createElement('div');
-    overlay.id = 'artis-changelog-overlay';
-    overlay.innerHTML = `
-      <div id="artis-changelog-modal">
-        <div class="artis-cl-header">
-          <div>
-            <h3>Notes de version</h3>
-            <span class="artis-cl-current">Version actuelle : v${ARTIS_VERSION}</span>
-          </div>
-          <button id="artis-cl-close" aria-label="Fermer">&times;</button>
-        </div>
-        <div class="artis-cl-body">
-          ${CHANGELOG.map((c, i) => `
-            <div class="artis-cl-entry${i === 0 ? ' latest' : ''}">
-              <div class="artis-cl-vrow">
-                <span class="artis-cl-tag">v${c.v}</span>
-                <span class="artis-cl-date">${c.d}</span>
-                ${i === 0 ? '<span class="artis-cl-new">ACTUELLE</span>' : ''}
-              </div>
-              <ul>${c.notes.map(n => `<li>${n}</li>`).join('')}</ul>
-            </div>`).join('')}
-        </div>
-      </div>`;
-    document.body.appendChild(overlay);
-
-    const close = () => { overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 250); };
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-    overlay.querySelector('#artis-cl-close').addEventListener('click', close);
-    document.addEventListener('keydown', function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc);} });
-    requestAnimationFrame(() => { overlay.style.opacity = '1'; });
-  }
-
   /* ── 6c. Inject custom loader into loading screens ────────── */
   function injectLoader(scope) {
     const root = scope && scope.nodeType === 1 ? scope : document;
@@ -966,18 +1000,26 @@
     });
   }
 
-  function stripAllArtisBlueBg(root) {
-    root.querySelectorAll('*').forEach(stripArtisBlueBg);
+  /* ── 7. Balayage initial : UN SEUL parcours du DOM ─────────
+     Fusionne blanc + bleu Artis + boutons + wrappers de form
+     (avant : 4-5 querySelectorAll('*') consécutifs). */
+  function isButtonish(el) {
+    const tag = el.tagName;
+    if (tag === 'BUTTON') return true;
+    if (tag === 'INPUT' && (el.type === 'button' || el.type === 'submit')) return true;
+    return el.classList.contains('btn') || el.getAttribute('role') === 'button';
   }
-
-  /* ── 7. Force transparent on buttons with white bg ──────── */
-  function stripWhiteButtons() {
-    document.querySelectorAll('button, .btn, [role="button"], input[type="button"], input[type="submit"]').forEach(el => {
-      /* Remove ALL inline background overrides on buttons */
-      el.style.removeProperty('background');
-      el.style.removeProperty('background-color');
-      stripWhiteBg(el);
-    });
+  function initialSweep() {
+    const all = document.body.querySelectorAll('*');
+    for (const el of all) {
+      if (isButtonish(el)) {
+        /* Remove ALL inline background overrides on buttons */
+        el.style.removeProperty('background');
+        el.style.removeProperty('background-color');
+      }
+      stripInline(el);
+    }
+    stripNotificationsTable();
   }
 
   /* ── 7c. Strip #ea_notifications inline td backgrounds ───── */
@@ -987,17 +1029,6 @@
     tbl.querySelectorAll('td, th, tr').forEach(el => {
       el.style.removeProperty('background');
       el.style.removeProperty('background-color');
-    });
-  }
-
-  /* ── 7b. Force transparent on form wrappers ─────────────── */
-  function stripFormWrappers() {
-    /* Artis nests page content inside <form> — strip any bg on descendants */
-    document.querySelectorAll('body > form, body > form *').forEach(el => {
-      if (el.nodeType !== 1) return;
-      /* Skip sidebar / aside elements */
-      if (el.closest('.aside-primary') || el.closest('.aside-secondary')) return;
-      stripWhiteBg(el);
     });
   }
 
@@ -1214,7 +1245,6 @@ ou DEMANDE PARTIELLEMENT RÉSOLUE : préciser`;
         const hi = editor.parentElement && editor.parentElement.querySelector('input[type="hidden"][name="ita_messclt"]');
         if (hi && hi.value) rawText = hi.value.replace(/<[^>]+>/g, ' ').replace(/\s+/g,' ').trim();
       }
-      console.log('[Reformuler] texte lu:', rawText);
       if (!rawText) {
         btn.innerHTML = '⚠ Champ vide';
         setTimeout(resetBtn, 2000);
@@ -1291,11 +1321,7 @@ ou DEMANDE PARTIELLEMENT RÉSOLUE : préciser`;
     injectNuclearCSS();
     enhanceLoadingScreens();
     injectRipple();
-    stripAllWhite(document.body);
-    stripAllArtisBlueBg(document.body);
-    stripFormWrappers();
-    stripWhiteButtons();
-    stripNotificationsTable();
+    initialSweep();   /* blanc + bleu + boutons + notifications : un seul parcours */
     tagPage();
     styleProfileCard();
     setTimeout(styleProfileCard, 800);  /* re-pass si avatar chargé tard */

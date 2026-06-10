@@ -24,8 +24,8 @@
   height: 560px; max-height: calc(100vh - 44px);
   display: flex; flex-direction: column; overflow: hidden;
   background: linear-gradient(160deg, rgba(20,20,46,.96) 0%, rgba(15,15,34,.97) 100%);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
   border: 1px solid var(--g-bd); border-radius: 20px;
   box-shadow: 0 24px 70px rgba(0,0,0,.6), 0 0 60px rgba(99,102,241,.1);
   color: var(--g-txt);
@@ -33,6 +33,16 @@
   transition: opacity .28s ease, transform .34s cubic-bezier(.22,1,.36,1);
 }
 #giles-panel.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+/* Notice confidentialité (sous la zone de saisie) */
+.giles-privacy {
+  padding: 4px 14px 9px;
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: var(--g-mut, #94a3b8);
+  opacity: 0.75;
+  text-align: center;
+}
 
 /* Header */
 .giles-head {

@@ -33,8 +33,9 @@ async function getSystemPrompt() {
    à chaque message. On sélectionne les fichiers les plus pertinents
    selon la question, via knowledge-index.json.                        */
 let _index = null;          // [{f, t, k}]
+let _base = null;           // artis.txt (seed), caché comme le reste
 const _fileCache = {};       // f -> contenu
-const KB_MAX_CHARS = 80000;  // ~20k tokens max par requête
+const KB_MAX_CHARS = 50000;  // budget base de connaissance (+ ~40k de pages côté client)
 
 function norm(s) {
   return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -56,7 +57,8 @@ async function loadKnowledgeFile(f) {
 
 /* Sélectionne + concatène les fichiers pertinents pour la question */
 async function getKnowledgeFor(query) {
-  const base = await loadText('artis.txt');               // toujours inclus (seed)
+  if (_base === null) _base = await loadText('artis.txt');   // toujours inclus (seed), fetché 1 fois
+  const base = _base;
   const index = await getIndex();
   if (!index.length) return base;
 
@@ -143,12 +145,13 @@ function classifyApiError(status, message) {
 
 /* Un appel generateContent sur un modèle donné */
 async function callModel(model, key, systemText, contents) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+  /* Clé en HEADER (x-goog-api-key), jamais en query string → n'apparaît pas dans les logs/proxies */
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
   let res;
   try {
     res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemText }] },
         contents,
@@ -245,7 +248,7 @@ async function pingGemini() {
   const key = await getApiKey();
   if (!key) return { ok: false, error: 'NO_KEY' };
   let res;
-  try { res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`); }
+  try { res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', { headers: { 'x-goog-api-key': key } }); }
   catch (e) { return { ok: false, error: 'NETWORK' }; }
   if (res.status === 200) return { ok: true };
   let data; try { data = await res.json(); } catch (e) { return { ok: false, error: 'PARSE' }; }

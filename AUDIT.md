@@ -1,5 +1,23 @@
 # AUDIT — Performance & Efficacité du code
 
+> **STATUT 2026-06-10 (v1.9.43) — corrections appliquées :**
+> - ✅ #1 Canvas : grille+orbes+dégradé pré-rendus offscreen, pause `visibilitychange`, throttle 30 fps, connexions via buckets spatiaux (app + login)
+> - ✅ #2 Observer : mutations batchées (1 traitement/frame via rAF), passes blanc+bleu fusionnées, `disconnect()` pendant nos écritures. Portée reste `body` (les dropdowns Artis sont en fin de body — piège connu)
+> - ✅ #3 `capturePageText` : mémoïsée (clé page + childElementCount + TTL 4 s) ; `innerText` conservé (règle error.md : respecte la visibilité)
+> - ✅ #4 Init : `initialSweep()` = un seul parcours (blanc + bleu + boutons + form wrappers)
+> - ✅ #5 (partiel) : hover sidebar dédupliqué, `backdrop-filter` 20-22px → 10-12px partout. NON fait : scoper les `!important` sous `#page-content` (casserait les menus body-level) ; split du fichier par page
+> - ✅ #6 : `artis.txt` caché (`_base`), budget KB 80k → 50k chars
+> - ✅ #7 : `showChangelog` + `injectWatermark` supprimés (CHANGELOG conservé comme journal)
+>
+> **Sécurité :**
+> - ✅ S1 (partiel) : clé envoyée en header `x-goog-api-key` (plus en query string). `apigemini.txt` reste en local dev (gitignored, hors WAR) — à exclure d'un éventuel build de release ; restrictions/rotation de clé côté Google = action manuelle
+> - ✅ S2 : URLs nettoyées (`session/cKey/cStatus=***`) avant stockage/envoi ; toggle popup « Partage pages → Gilles » + notice de confidentialité dans le panel. NON fait : rédaction PII automatique
+> - ✅ S3 : conversations purgées après 30 jours ; pages restent en sessionStorage uniquement ; purge des pages si partage désactivé
+> - ✅ S4 : permission `tabs` retirée (host permission `artis.digithall.org` à la place), matches restreints à `artis.digithall.org` (jokers `*.artis.fr/.net` supprimés)
+> - S5 : inchangé (échappement `esc()` déjà en place — risque maîtrisé)
+> - ✅ S6 : `console.log` du texte page (Reformuler) supprimé ; aucune clé loggée
+> - ✅ S7 : polices bundlées (`fonts/*.woff2` + `fonts.css`), plus aucune requête Google Fonts
+
 Date : 2026-06-09 · Version auditée : 1.9.21
 Périmètre : `extension/*.js` + `extension/*.css` (5 694 lignes)
 

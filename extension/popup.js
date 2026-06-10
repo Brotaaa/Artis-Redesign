@@ -6,11 +6,12 @@ const $ = id => document.getElementById(id);
 try { $('pp-ver').textContent = 'v' + chrome.runtime.getManifest().version; } catch (e) {}
 
 /* Charger l'état (défaut = activé) */
-chrome.storage.local.get(['artis_enabled', 'artis_dark', 'artis_version_btn', 'giles_enabled', 'notif_enabled', 'giles_api_key'], s => {
+chrome.storage.local.get(['artis_enabled', 'artis_dark', 'artis_version_btn', 'giles_enabled', 'giles_page_share', 'notif_enabled', 'giles_api_key'], s => {
   $('pp-main').checked    = s.artis_enabled !== false;
   $('pp-dark').checked    = s.artis_dark !== false;
   $('pp-version').checked = s.artis_version_btn !== false;
   $('pp-giles').checked   = s.giles_enabled !== false;
+  $('pp-pages').checked   = s.giles_page_share !== false;
   $('pp-notif').checked   = s.notif_enabled === true;   // défaut décoché
   syncDependentDisabled();
   if (s.giles_api_key) $('pp-key').placeholder = 'Clé personnalisée enregistrée ✓';
@@ -45,6 +46,11 @@ $('pp-giles').addEventListener('change', e => {
   chrome.storage.local.set({ giles_enabled: e.target.checked });
 });
 
+/* Partage du contenu des pages avec Gemini (contexte Gilles) */
+$('pp-pages').addEventListener('change', e => {
+  chrome.storage.local.set({ giles_page_share: e.target.checked });
+});
+
 /* Notifications — demande l'autorisation au navigateur quand activé */
 $('pp-notif').addEventListener('change', e => {
   if (e.target.checked) {
@@ -74,6 +80,7 @@ $('pp-notif').addEventListener('change', e => {
 function syncDependentDisabled() {
   const off = !$('pp-main').checked;
   $('pp-giles').disabled   = off;
+  $('pp-pages').disabled   = off;
   $('pp-dark').disabled    = off;
   $('pp-version').disabled = off;
 }

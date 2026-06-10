@@ -1,10 +1,13 @@
-﻿{
+{
   "manifest_version": 3,
   "name": "Artis Login Enhancer",
-  "version": "1.9.42",
+  "version": "1.9.43",
   "description": "Modernise login + interface interne Artis.net — dark glassmorphism + animations + assistant IA Gilles",
-  "permissions": ["storage", "tabs", "notifications"],
-  "host_permissions": ["https://generativelanguage.googleapis.com/*"],
+  "permissions": ["storage", "notifications"],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*",
+    "https://artis.digithall.org/*"
+  ],
   "background": {
     "service_worker": "giles-bg.js"
   },
@@ -26,38 +29,22 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["justejohn.png"],
-      "matches": [
-        "*://artis.digithall.org/*",
-        "*://*.artis.fr/*",
-        "*://*.artis.net/*"
-      ]
+      "resources": ["justejohn.png", "fonts/*.woff2"],
+      "matches": ["https://artis.digithall.org/*"]
     }
   ],
   "content_scripts": [
     {
-      "matches": [
-        "*://artis.digithall.org/*/composants/login/*",
-        "*://*.artis.fr/*/composants/login/*",
-        "*://*.artis.net/*/composants/login/*"
-      ],
+      "matches": ["https://artis.digithall.org/*/composants/login/*"],
       "js": ["content.js"],
-      "css": ["login-override.css"],
+      "css": ["fonts/fonts.css", "login-override.css"],
       "run_at": "document_end"
     },
     {
-      "matches": [
-        "*://artis.digithall.org/ArtisWebDigitInvest/*",
-        "*://*.artis.fr/*/ArtisWeb*/*",
-        "*://*.artis.net/*/ArtisWeb*/*"
-      ],
-      "exclude_matches": [
-        "*://artis.digithall.org/*/composants/login/*",
-        "*://*.artis.fr/*/composants/login/*",
-        "*://*.artis.net/*/composants/login/*"
-      ],
+      "matches": ["https://artis.digithall.org/ArtisWebDigitInvest/*"],
+      "exclude_matches": ["https://artis.digithall.org/*/composants/login/*"],
       "js": ["app-content.js", "giles.js"],
-      "css": ["app-override.css", "giles.css"],
+      "css": ["fonts/fonts.css", "app-override.css", "giles.css"],
       "run_at": "document_end"
     }
   ]

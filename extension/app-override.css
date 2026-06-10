@@ -3,7 +3,7 @@
    Source: Artis.net - Planning.html + composants.css
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+/* Polices : bundlées en local (fonts/fonts.css via manifest) — plus de requête Google Fonts */
 
 /* ── Anti-saccade reload : masque le contenu tant que le thème
    n'est pas appliqué, puis fade-in une fois prêt (.artis-ready).
@@ -28,7 +28,7 @@ html:not(.artis-light) {
   --a-text:    #e2e8f0;
   --a-muted:   #94a3b8;
   --a-green:   #10b981;
-  --a-blur:    blur(20px) saturate(160%);
+  --a-blur:    blur(12px) saturate(140%);   /* 20px→12px : backdrop-filter très lourd GPU */
   color-scheme: dark;
 }
 
@@ -688,6 +688,7 @@ body > form footer {
   box-shadow:
     0 0 0 1px rgba(129,140,248,0.22),
     inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  transform: scale(1.08) !important;
 }
 
 .aside-primary .nav-link.btn.btn-icon.active {
@@ -2018,8 +2019,8 @@ button:hover,
   z-index: 2147483600 !important;
   /* Quasi-opaque → masque le contenu pendant le reload */
   background: radial-gradient(ellipse at center, rgba(17,17,40,0.985) 0%, rgba(6,6,18,0.995) 100%) !important;
-  backdrop-filter: blur(22px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+  backdrop-filter: blur(10px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(140%) !important;
 }
 
 /* Conteneur loader → centré dans le viewport sans toucher au display de l'overlay */
@@ -2717,11 +2718,6 @@ body.page-ccPlanningV2 .card:hover,
   box-shadow: 0 4px 20px rgba(0,0,0,0.35) !important;
 }
 
-/* ── Hover: icône sidebar scale ─────────────────────────── */
-.aside-primary .nav-link.btn.btn-icon:hover {
-  transform: scale(1.08) !important;
-}
-
 /* ── Click press feedback ────────────────────────────────── */
 button:active,
 .btn:active,
@@ -2765,8 +2761,8 @@ button:active,
 /* ── Date range picker (sélecteur de semaine / période EDT) ── */
 .daterangepicker {
   background: rgba(13,13,38,0.97) !important;
-  backdrop-filter: blur(20px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
   border: 1px solid rgba(99,102,241,0.25) !important;
   border-radius: 14px !important;
   box-shadow: 0 12px 40px rgba(0,0,0,0.55) !important;

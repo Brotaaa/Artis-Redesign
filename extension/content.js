@@ -39,7 +39,9 @@
     });
     document.body.insertBefore(canvas, document.body.firstChild);
     const ctx = canvas.getContext('2d');
-    let W, H, particles, animId;
+    let W, H, particles, animId = null, lastTs = 0;
+    const FRAME_MS = 33;                                  // ~30 fps, suffisant pour un fond
+    const staticLayer = document.createElement('canvas'); // dégradé + orbes + grille pré-rendus
 
     const ORBS = [
       { x: 0.12, y: 0.22, r: 0.40, c: 'rgba(99,102,241,0.20)'  },
@@ -49,10 +51,37 @@
       { x: 0.05, y: 0.80, r: 0.26, c: 'rgba(165,180,252,0.08)' },
     ];
 
+    /* Couches statiques rendues UNE fois par resize (plus jamais par frame) */
+    function renderStatic() {
+      staticLayer.width = W; staticLayer.height = H;
+      const s = staticLayer.getContext('2d');
+      const g = s.createLinearGradient(0, 0, W * 0.4, H);
+      g.addColorStop(0,   '#16163a');
+      g.addColorStop(0.45,'#1d1d4a');
+      g.addColorStop(1,   '#191940');
+      s.fillStyle = g;
+      s.fillRect(0, 0, W, H);
+      ORBS.forEach(orb => {
+        const ox = orb.x * W, oy = orb.y * H, rr = orb.r * Math.min(W, H);
+        const rg = s.createRadialGradient(ox, oy, 0, ox, oy, rr);
+        rg.addColorStop(0, orb.c);
+        rg.addColorStop(1, 'rgba(0,0,0,0)');
+        s.fillStyle = rg;
+        s.beginPath(); s.arc(ox, oy, rr, 0, Math.PI * 2); s.fill();
+      });
+      s.fillStyle = 'rgba(99,102,241,0.055)';
+      for (let x = 60; x < W; x += 60)
+        for (let y = 60; y < H; y += 60) {
+          s.beginPath(); s.arc(x, y, 0.9, 0, Math.PI * 2); s.fill();
+        }
+    }
+
     function resize() {
       W = canvas.width  = window.innerWidth;
       H = canvas.height = window.innerHeight;
+      renderStatic();
       initParticles();
+      ctx.drawImage(staticLayer, 0, 0);   // affichage immédiat même si animation en pause
     }
 
     function initParticles() {
@@ -67,38 +96,49 @@
       }));
     }
 
+    /* Connexions via grille spatiale (buckets) — évite le O(n²) complet */
+    const LINK_D = 110;
+    function drawLinks() {
+      const cols = Math.ceil(W / LINK_D) + 2;
+      const buckets = new Map();
+      particles.forEach((p, i) => {
+        const k = (((p.x / LINK_D) | 0) + 1) + (((p.y / LINK_D) | 0) + 1) * cols;
+        let b = buckets.get(k);
+        if (!b) { b = []; buckets.set(k, b); }
+        b.push(i);
+      });
+      const OFFS = [0, 1, cols - 1, cols, cols + 1];   // demi-voisinage → chaque paire vue 1 fois
+      ctx.lineWidth = 0.45;
+      buckets.forEach((cell, key) => {
+        for (const off of OFFS) {
+          const other = off === 0 ? cell : buckets.get(key + off);
+          if (!other) continue;
+          for (let a = 0; a < cell.length; a++) {
+            const i = cell[a];
+            for (let b2 = (off === 0 ? a + 1 : 0); b2 < other.length; b2++) {
+              const j = other[b2];
+              const dx = particles[i].x - particles[j].x;
+              const dy = particles[i].y - particles[j].y;
+              const d2 = dx * dx + dy * dy;
+              if (d2 < LINK_D * LINK_D) {
+                const d = Math.sqrt(d2);
+                ctx.strokeStyle = `rgba(99,102,241,${(0.14 * (1 - d / LINK_D)).toFixed(3)})`;
+                ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
+              }
+            }
+          }
+        }
+      });
+    }
+
     function draw(ts) {
       animId = requestAnimationFrame(draw);
-      const t = ts * 0.00028;
+      if (ts - lastTs < FRAME_MS) return;   // throttle 30 fps
+      lastTs = ts;
 
-      /* BG gradient */
-      const g = ctx.createLinearGradient(0, 0, W * 0.4, H);
-      g.addColorStop(0,   '#16163a');
-      g.addColorStop(0.45,'#1d1d4a');
-      g.addColorStop(1,   '#191940');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
+      ctx.drawImage(staticLayer, 0, 0);
 
-      /* Orbs */
-      ORBS.forEach((orb, i) => {
-        const ox = (orb.x + Math.sin(t + i * 1.4) * 0.055) * W;
-        const oy = (orb.y + Math.cos(t + i * 1.0) * 0.055) * H;
-        const rr = orb.r * Math.min(W, H);
-        const rg = ctx.createRadialGradient(ox, oy, 0, ox, oy, rr);
-        rg.addColorStop(0, orb.c);
-        rg.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = rg;
-        ctx.beginPath(); ctx.arc(ox, oy, rr, 0, Math.PI * 2); ctx.fill();
-      });
-
-      /* Dot grid */
-      ctx.fillStyle = 'rgba(99,102,241,0.055)';
-      for (let x = 60; x < W; x += 60)
-        for (let y = 60; y < H; y += 60) {
-          ctx.beginPath(); ctx.arc(x, y, 0.9, 0, Math.PI * 2); ctx.fill();
-        }
-
-      /* Particles */
       particles.forEach(p => {
         p.x = (p.x + p.vx + W) % W;
         p.y = (p.y + p.vy + H) % H;
@@ -108,27 +148,18 @@
         ctx.fillStyle = `rgba(129,140,248,${pa.toFixed(3)})`; ctx.fill();
       });
 
-      /* Connections */
-      ctx.lineWidth = 0.45;
-      for (let i = 0; i < particles.length; i++)
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const d = Math.sqrt(dx*dx + dy*dy);
-          if (d < 110) {
-            ctx.strokeStyle = `rgba(99,102,241,${(0.14 * (1 - d / 110)).toFixed(3)})`;
-            ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
-          }
-        }
+      drawLinks();
     }
+
+    function start() { if (animId === null) animId = requestAnimationFrame(draw); }
+    function stop()  { if (animId !== null) { cancelAnimationFrame(animId); animId = null; } }
 
     resize();
     window.addEventListener('resize', resize);
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      draw(0); cancelAnimationFrame(animId);
-    } else {
-      requestAnimationFrame(draw);
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      start();
+      /* Onglet masqué → animation en pause (CPU/batterie) */
+      document.addEventListener('visibilitychange', () => { document.hidden ? stop() : start(); });
     }
   }
 
@@ -262,22 +293,6 @@
         `;
       }
     }
-  }
-
-  /* ── 6b. Watermark JusteJohn (bas-droite) ─────────────────── */
-  function injectWatermark() {
-    if (document.getElementById('artis-watermark')) return;
-    const img = document.createElement('img');
-    img.id = 'artis-watermark';
-    img.src = chrome.runtime.getURL('justejohn.png');
-    img.alt = '';
-    img.style.cssText = `
-      position:fixed;bottom:18px;right:18px;z-index:9999;
-      width:240px;height:auto;pointer-events:none;
-      opacity:0.16;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4));
-      transition:opacity 0.4s ease;animation:l-fade-up 0.9s ease 0.4s both;
-    `;
-    document.body.appendChild(img);
   }
 
   /* ── 6c. Logo JusteJohn haut-gauche + centrage login ──────── */

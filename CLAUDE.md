@@ -86,6 +86,9 @@ L'utilisateur décrit les éléments en langage courant + donne souvent un **XPa
 - Tables vides → l'élément `<table>` doit avoir fond dark explicite (cellules transparentes laissent voir wrapper blanc).
 - Blocs planning : couleurs Artis = **données métier** (nature/type) → ne pas aplatir, juste harmoniser (saturation/glow/voile).
 - Metronic toggle les sous-menus via classes `.show/.here/.hover` → animer avec `grid-template-rows 0fr→1fr`.
+- Polices locales : tout `.woff2` chargé par la page doit être dans `web_accessible_resources` du manifest (`fonts/*.woff2`), sinon bloqué.
+- Permission `tabs` retirée (v1.9.43) : `tabs.query({url})` marche via la host permission `artis.digithall.org` ; `reload/update` n'ont jamais eu besoin de permission.
+- MutationObserver (app-content) : traitement batché par frame + `disconnect()` pendant nos écritures — ne pas remettre de strip synchrone dans le callback (boucle de rétroaction).
 
 ---
 
@@ -393,6 +396,7 @@ Partout où Artis utilise son bleu (`#00AEEF`, `bg-artis-default-color`, `text-a
 | `extension/prompts/giles-system-prompt.txt` | Préprompt système de Gilles |
 | `extension/artis.txt` + `ressources.md` | Base de connaissance (bundlée depuis `datatxt/`) |
 | `extension/apigemini.txt` | Clé API Gemini (gitignored, non web-accessible) |
+| `extension/fonts/` | Polices locales (Plus Jakarta Sans, Space Grotesk, DM Sans — woff2 latin/latin-ext) + `fonts.css` chargé via manifest. Plus de requête Google Fonts |
 | `extension/popup.html/.css/.js` | Popup : sliders activer/désactiver + réglage clé |
 | `sync-knowledge.ps1` | Re-copie `datatxt/*` → `extension/` (maj connaissance) |
 
