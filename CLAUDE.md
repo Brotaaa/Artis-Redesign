@@ -71,6 +71,7 @@ L'utilisateur décrit les éléments en langage courant + donne souvent un **XPa
 | « les 3 boutons » (login) | Rangée SSO / Entrer / À propos | `.row.form-actions` > `.col.btn-action-login` > `.btn-group` (`#b_sso`, `#b_Entrer`, `#aProposModalLoginLink`) — checkbox dans un `.col` séparé, rangée passée en wrap pleine largeur (v1.9.42) |
 | « la preview pour mettre en gras » / barre gras/italique sur le compte rendu | Toolbar inline TinyMCE 6.8 (flottante, ancrée au-dessus de l'éditeur, body-level) | `.tox.tox-tinymce-inline` > `.tox-editor-header` ; boutons `.tox-tbtn` ; popups `.tox-pop/.tox-menu/.tox-collection` (dans `.tox-tinymce-aux`) ; éditeur = `.editor-artis-inline#ita_messclt` (page entreeAjouter ccCrit) — thémée dark solide v1.9.44 ; bouton `#artis-reformuler-btn` monté dedans (`.tox-toolbar__primary`, v1.9.45) |
 | « bloc détail de la demande » / contexte DIT (Client, Site, Demandeur, Date, Détail) | Carte récap DIT en haut de la saisie CR | `#s_detail_dit > .card-body` — `.form-group` (`label` + `.text-value`), lu par `getDitContext()` pour le bouton Reformuler |
+| « ma page d'accueil » (pop-up) | Modal widgets grid-stack (Favoris, profil, checklist, logo) | `#my-home-page` > `.modal-body.modal-max-height` (plafonnée 75vh → pleine hauteur v1.9.47) ; grille `#widget_container_modal.grid-stack`, widgets `.grid-stack-item` |
 
 ### Notes comportement utilisateur
 - Donne souvent **XPath** au lieu de classe → utiliser pour localiser, mais cibler par **classe/id stable** dans le CSS (XPath `div[12]` = index fragile).
