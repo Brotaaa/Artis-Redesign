@@ -1,23 +1,43 @@
-﻿/* Popup — slider activer/désactiver + réglage clé Gilles */
+/* Popup — interrupteurs + mode thème (sombre/auto/clair) + clé Gilles */
 
 const $ = id => document.getElementById(id);
 
 /* Version depuis le manifest */
 try { $('pp-ver').textContent = 'v' + chrome.runtime.getManifest().version; } catch (e) {}
 
-/* Charger l'état (défaut = activé) */
-chrome.storage.local.get(['artis_enabled', 'artis_dark', 'artis_version_btn', 'giles_enabled', 'giles_page_share', 'notif_enabled', 'giles_api_key'], s => {
+/* ── Mode thème (segmented) ─────────────────────────────────── */
+const MODE_BTNS = Array.from(document.querySelectorAll('#pp-mode button'));
+let themeMode = 'dark';
+
+function paintMode() {
+  MODE_BTNS.forEach(b => b.classList.toggle('active', b.dataset.mode === themeMode));
+}
+
+MODE_BTNS.forEach(b => b.addEventListener('click', () => {
+  if (b.disabled || b.dataset.mode === themeMode) return;
+  themeMode = b.dataset.mode;
+  paintMode();
+  /* app-content recharge les onglets Artis avec l'overlay anti-saccade */
+  chrome.storage.local.set({ artis_theme_mode: themeMode });
+}));
+
+/* ── Charger l'état (défaut = activé) ───────────────────────── */
+chrome.storage.local.get(
+  ['artis_enabled', 'artis_theme_mode', 'artis_dark', 'artis_version_btn',
+   'giles_enabled', 'giles_page_share', 'notif_enabled', 'giles_api_key'], s => {
   $('pp-main').checked    = s.artis_enabled !== false;
-  $('pp-dark').checked    = s.artis_dark !== false;
   $('pp-version').checked = s.artis_version_btn !== false;
   $('pp-giles').checked   = s.giles_enabled !== false;
   $('pp-pages').checked   = s.giles_page_share !== false;
   $('pp-notif').checked   = s.notif_enabled === true;   // défaut décoché
+  /* Migration : ancien slider artis_dark si pas encore de mode */
+  themeMode = s.artis_theme_mode || (s.artis_dark === false ? 'light' : 'dark');
+  paintMode();
   syncDependentDisabled();
   if (s.giles_api_key) $('pp-key').placeholder = 'Clé personnalisée enregistrée ✓';
 });
 
-/* Master toggle */
+/* ── Master toggle ──────────────────────────────────────────── */
 $('pp-main').addEventListener('change', e => {
   if (!e.target.checked) {
     const ok = confirm("Désactiver l'extension ?\n\nArtis risque de ne plus s'afficher correctement. La page va se recharger.");
@@ -31,22 +51,13 @@ $('pp-main').addEventListener('change', e => {
   syncDependentDisabled();
 });
 
-/* Mode sombre */
-$('pp-dark').addEventListener('change', e => {
-  chrome.storage.local.set({ artis_dark: e.target.checked });
-});
-
-/* Bouton version */
+/* ── Interrupteurs simples ──────────────────────────────────── */
 $('pp-version').addEventListener('change', e => {
   chrome.storage.local.set({ artis_version_btn: e.target.checked });
 });
-
-/* Gilles toggle */
 $('pp-giles').addEventListener('change', e => {
   chrome.storage.local.set({ giles_enabled: e.target.checked });
 });
-
-/* Partage du contenu des pages avec Gemini (contexte Gilles) */
 $('pp-pages').addEventListener('change', e => {
   chrome.storage.local.set({ giles_page_share: e.target.checked });
 });
@@ -63,7 +74,6 @@ $('pp-notif').addEventListener('change', e => {
       if (perm === 'granted') {
         chrome.storage.local.set({ notif_enabled: true });
       } else {
-        // refusé ou ignoré → on remet le slider à off
         e.target.checked = false;
         chrome.storage.local.set({ notif_enabled: false });
         if (perm === 'denied') {
@@ -81,11 +91,11 @@ function syncDependentDisabled() {
   const off = !$('pp-main').checked;
   $('pp-giles').disabled   = off;
   $('pp-pages').disabled   = off;
-  $('pp-dark').disabled    = off;
   $('pp-version').disabled = off;
+  MODE_BTNS.forEach(b => { b.disabled = off; });
 }
 
-/* Enregistrer la clé API */
+/* ── Enregistrer la clé API ─────────────────────────────────── */
 $('pp-key-save').addEventListener('click', () => {
   const val = $('pp-key').value.trim();
   const hint = $('pp-key-hint');
@@ -146,3 +156,9 @@ function checkApi() {
 
 $('pp-api-retry').addEventListener('click', checkApi);
 checkApi();   // au chargement de la popup
+
+/* ── Lien vers la page de paramètres avancés ── */
+$('pp-options-link').addEventListener('click', e => {
+  e.preventDefault();
+  chrome.runtime.openOptionsPage();
+});

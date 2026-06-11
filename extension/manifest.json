@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Artis Login Enhancer",
-  "version": "1.9.52",
+  "version": "1.9.57",
   "description": "Modernise login + interface interne Artis.net — dark glassmorphism + animations + assistant IA Gilles",
   "permissions": ["storage", "notifications"],
   "host_permissions": [
@@ -27,10 +27,14 @@
     },
     "default_title": "Artis Redesign"
   },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "web_accessible_resources": [
     {
-      "resources": ["justejohn.png", "icon-32.png", "fonts/*.woff2"],
-      "matches": ["https://artis.digithall.org/*"]
+      "resources": ["justejohn.png", "icon-32.png", "fonts/*.woff2", "CHANGELOG.md"],
+      "matches": ["https://artis.digithall.org/*", "chrome-extension://*/*"]
     }
   ],
   "content_scripts": [

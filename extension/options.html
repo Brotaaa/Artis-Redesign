@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Artis Redesign — Paramètres</title>
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <aside class="opt-sidebar">
+    <div class="opt-brand">
+      <img src="justejohn.png" alt="" class="opt-logo">
+      <div>
+        <div class="opt-brand-name">Artis Redesign</div>
+        <div class="opt-brand-ver" id="opt-ver">v—</div>
+      </div>
+    </div>
+    <nav class="opt-nav">
+      <a class="opt-nav-item active" data-section="apparence">🎨 Apparence</a>
+      <a class="opt-nav-item" data-section="gilles">🤖 Assistant Gilles</a>
+      <a class="opt-nav-item" data-section="divers">🔔 Divers</a>
+      <a class="opt-nav-item" data-section="donnees">💾 Données</a>
+      <a class="opt-nav-item" data-section="apropos">ℹ️ À propos</a>
+    </nav>
+  </aside>
+
+  <main class="opt-main">
+
+    <!-- ── Apparence ── -->
+    <section class="opt-section active" id="sec-apparence">
+      <h1 class="opt-h1">Apparence</h1>
+
+      <div class="opt-card">
+        <div class="opt-row opt-row-col">
+          <div class="opt-label">
+            <span class="opt-name">Thème</span>
+            <span class="opt-desc">Sombre, clair, ou automatique selon le navigateur</span>
+          </div>
+          <div class="opt-seg" id="opt-mode" role="radiogroup">
+            <button type="button" data-mode="dark"><span>🌙</span> Sombre</button>
+            <button type="button" data-mode="auto"><span>🖥️</span> Auto</button>
+            <button type="button" data-mode="light"><span>☀️</span> Clair</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="opt-card">
+        <div class="opt-row">
+          <div class="opt-label">
+            <span class="opt-name">Bouton version</span>
+            <span class="opt-desc">Affiche le bouton GitHub + changelog dans la sidebar Artis</span>
+          </div>
+          <label class="opt-switch">
+            <input type="checkbox" id="opt-version" checked>
+            <span class="opt-slider"></span>
+          </label>
+        </div>
+        <div class="opt-row">
+          <div class="opt-label">
+            <span class="opt-name">Extension activée</span>
+            <span class="opt-desc">Active ou désactive tout le redesign (rechargement requis)</span>
+          </div>
+          <label class="opt-switch">
+            <input type="checkbox" id="opt-main" checked>
+            <span class="opt-slider"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Gilles ── -->
+    <section class="opt-section" id="sec-gilles">
+      <h1 class="opt-h1">Assistant Gilles</h1>
+
+      <div class="opt-card">
+        <div class="opt-row">
+          <div class="opt-label">
+            <span class="opt-name">Activer Gilles</span>
+            <span class="opt-desc">Affiche le pop-up IA en bas de chaque page Artis</span>
+          </div>
+          <label class="opt-switch">
+            <input type="checkbox" id="opt-giles" checked>
+            <span class="opt-slider"></span>
+          </label>
+        </div>
+        <div class="opt-row">
+          <div class="opt-label">
+            <span class="opt-name">Partage des pages</span>
+            <span class="opt-desc">Envoie le contenu de la page à Gemini pour le contexte</span>
+          </div>
+          <label class="opt-switch">
+            <input type="checkbox" id="opt-pages" checked>
+            <span class="opt-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="opt-card">
+        <div class="opt-field-group">
+          <label class="opt-field-label" for="opt-key">Clé API Gemini</label>
+          <div class="opt-field-row">
+            <input type="password" id="opt-key" placeholder="Laisser vide = clé du fichier apigemini.txt" autocomplete="off">
+            <button id="opt-key-save" class="opt-btn opt-btn-primary">Enregistrer</button>
+          </div>
+          <div class="opt-hint" id="opt-key-hint"></div>
+        </div>
+      </div>
+
+      <div class="opt-card">
+        <div class="opt-field-group">
+          <label class="opt-field-label" for="opt-model">Modèle Gemini préféré</label>
+          <select id="opt-model">
+            <option value="">Automatique (recommandé)</option>
+            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (rapide)</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+          </select>
+          <div class="opt-hint">En cas d'indisponibilité, le fallback automatique prend le relais.</div>
+        </div>
+      </div>
+
+      <!-- État API -->
+      <div class="opt-api" id="opt-api">
+        <span class="opt-dot" id="opt-api-dot"></span>
+        <span id="opt-api-txt">Vérification de l'API…</span>
+        <button class="opt-api-retry" id="opt-api-retry" hidden>↻ Réessayer</button>
+      </div>
+    </section>
+
+    <!-- ── Divers ── -->
+    <section class="opt-section" id="sec-divers">
+      <h1 class="opt-h1">Divers</h1>
+
+      <div class="opt-card">
+        <div class="opt-row">
+          <div class="opt-label">
+            <span class="opt-name">Notifications navigateur</span>
+            <span class="opt-desc">Alerte lors de nouvelles DIT détectées</span>
+          </div>
+          <label class="opt-switch">
+            <input type="checkbox" id="opt-notif">
+            <span class="opt-slider"></span>
+          </label>
+        </div>
+        <div class="opt-row opt-row-col">
+          <div class="opt-label">
+            <span class="opt-name">Intervalle autoreload DIT</span>
+            <span class="opt-desc">Fréquence de vérification des nouvelles DIT (secondes)</span>
+          </div>
+          <div class="opt-slider-row">
+            <input type="range" id="opt-dit-interval" min="15" max="300" step="15" value="60">
+            <span class="opt-slider-val" id="opt-dit-interval-val">60 s</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Données ── -->
+    <section class="opt-section" id="sec-donnees">
+      <h1 class="opt-h1">Données</h1>
+
+      <div class="opt-card">
+        <div class="opt-field-group">
+          <div class="opt-name" style="margin-bottom:6px">Exporter les paramètres</div>
+          <div class="opt-desc" style="margin-bottom:10px">Télécharge un fichier JSON avec tous tes réglages.</div>
+          <button id="opt-export" class="opt-btn opt-btn-secondary">⬇ Exporter (JSON)</button>
+        </div>
+      </div>
+
+      <div class="opt-card">
+        <div class="opt-field-group">
+          <div class="opt-name" style="margin-bottom:6px">Importer des paramètres</div>
+          <div class="opt-desc" style="margin-bottom:10px">Charge un fichier JSON exporté précédemment.</div>
+          <label class="opt-btn opt-btn-secondary" style="cursor:pointer">
+            ⬆ Importer (JSON)
+            <input type="file" id="opt-import" accept=".json" style="display:none">
+          </label>
+          <div class="opt-hint" id="opt-import-hint"></div>
+        </div>
+      </div>
+
+      <div class="opt-card opt-card-danger">
+        <div class="opt-field-group">
+          <div class="opt-name" style="margin-bottom:6px">Réinitialiser tout</div>
+          <div class="opt-desc" style="margin-bottom:10px">Supprime tous les paramètres et remet les valeurs par défaut. Cette action est irréversible.</div>
+          <button id="opt-reset" class="opt-btn opt-btn-danger">⚠ Réinitialiser</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── À propos ── -->
+    <section class="opt-section" id="sec-apropos">
+      <h1 class="opt-h1">À propos</h1>
+
+      <div class="opt-card">
+        <div class="opt-about-hero">
+          <img src="justejohn.png" alt="" class="opt-about-logo">
+          <div>
+            <div class="opt-about-title">Artis Redesign</div>
+            <div class="opt-about-ver" id="opt-about-ver">v—</div>
+            <div class="opt-desc">Extension Chrome/Edge — dark glassmorphism pour Artis.net</div>
+          </div>
+        </div>
+        <div class="opt-row" style="padding-top:0">
+          <a href="https://github.com/SimplementJohn/Artis-Redesign" target="_blank" class="opt-btn opt-btn-secondary" style="text-decoration:none">⭐ GitHub</a>
+          <a href="https://github.com/SimplementJohn/Artis-Redesign/issues" target="_blank" class="opt-btn opt-btn-secondary" style="text-decoration:none">🐛 Signaler un bug</a>
+        </div>
+      </div>
+
+      <div class="opt-card">
+        <div class="opt-field-group">
+          <div class="opt-name" style="margin-bottom:10px">Changelog</div>
+          <div class="opt-changelog" id="opt-changelog">Chargement…</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="opt-toast" id="opt-toast"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>
